@@ -84,8 +84,10 @@ def sample(config, rng):
     return spec, gold
 
 
-class BlocksPolicy(torch.nn.Module, Policy):
-    def __init__(self, config, batch_size=32, hidden_size=1000):
+class BlocksNet(torch.nn.Module):
+    def __init__(
+        self, config, batch_size=32, hidden_size=1000, *, output_size, last_layer
+    ):
         torch.nn.Module.__init__(self)
         self._batch_size = batch_size
         self.config = config
@@ -96,8 +98,8 @@ class BlocksPolicy(torch.nn.Module, Policy):
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, config.overall_length),
-            torch.nn.LogSoftmax(),
+            torch.nn.Linear(hidden_size, output_size(config)),
+            last_layer,
         )
 
     @property
@@ -125,3 +127,27 @@ class BlocksPolicy(torch.nn.Module, Policy):
         packed = self.pack(states)
         result = self.net(packed)
         return result
+
+
+class BlocksPolicy(BlocksNet, Policy):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args,
+            **kwargs,
+            output_size=lambda config: config.overall_length,
+            last_layer=torch.nn.LogSoftmax()
+        )
+
+    @property
+    def initial_program_set(self):
+        return [SequentialProgram([])]
+
+
+class BlocksValue(BlocksNet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args, **kwargs, output_size=lambda config: 1, last_layer=torch.nn.Sigmoid()
+        )
+
+    def forward(self, *args, **kwargs):
+        return super().forward(*args, **kwargs).squeeze(-1)
