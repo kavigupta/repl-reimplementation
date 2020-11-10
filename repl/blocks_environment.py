@@ -3,7 +3,7 @@ import attr
 import numpy as np
 import torch
 
-from .program import Program
+from .program import SequentialProgram
 from .policy import Policy
 
 
@@ -67,8 +67,9 @@ def sample(config, rng):
     rng.shuffle(blocks)
     program = list(range(len(blocks)))
     rng.shuffle(program)
-    spec = BlocksSpec(blocks, Program(program))
-    return spec, Program(program)
+    gold = SequentialProgram(program)
+    spec = BlocksSpec(blocks, gold)
+    return spec, gold
 
 
 class BlocksPolicy(torch.nn.Module, Policy):
