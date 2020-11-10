@@ -5,6 +5,7 @@ import torch
 
 from .program import SequentialProgram
 from .policy import Policy
+from .specification import Spec
 
 
 @attr.s
@@ -41,9 +42,11 @@ class BlockConfig:
 
 
 @attr.s
-class BlocksSpec:
+class BlocksSpec(Spec):
     blocks = attr.ib()
     gold_program = attr.ib()
+
+    program_class = SequentialProgram
 
     def partially_execute(self, program):
         result = []
@@ -56,6 +59,12 @@ class BlocksSpec:
     @property
     def output_pattern(self):
         return self.partially_execute(self.gold_program)
+
+    def program_is_complete(self, program):
+        return len(program.tokens) >= len(self.blocks)
+
+    def program_is_correct(self, program):
+        return self.partially_execute(program) == self.output_pattern
 
 
 def sample(config, rng):
