@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import attr
 
@@ -9,8 +9,9 @@ class Program(ABC):
     def partials(self):
         pass
 
+    @classmethod
     @abstractmethod
-    def extend(self, production):
+    def production(cls, action, programs):
         pass
 
 
@@ -21,7 +22,9 @@ class SequentialProgram(Program):
     @property
     def partials(self):
         for t in range(len(self.tokens)):
-            yield [Program(self.tokens[:t])], self.tokens[t]
+            yield [SequentialProgram(self.tokens[:t])], self.tokens[t]
 
-    def extend(self, production):
-        return SequentialProgram(tuple(self.tokens) + (production,))
+    @classmethod
+    def production(self, action, programs):
+        [program] = programs
+        return SequentialProgram(tuple(program.tokens) + (action,))
