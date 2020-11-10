@@ -14,7 +14,9 @@ class Block:
 
     @staticmethod
     def sample(config, rng):
-        return Block(rng.choice(config.num_colors), rng.choice(config.max_block_length))
+        return Block(
+            rng.choice(config.num_colors), rng.choice(config.max_block_length) + 1
+        )
 
 
 @attr.s
