@@ -46,11 +46,12 @@ class BlocksSpec:
     gold_program = attr.ib()
 
     def partially_execute(self, program):
-        return [
-            self.blocks[i].color
-            for i in program.tokens
-            for _ in range(self.blocks[i].length)
-        ]
+        result = []
+        for i in program.tokens:
+            if i < len(self.blocks):
+                block = self.blocks[i]
+                result += [block.color] * block.length
+        return result[: sum(b.length for b in self.blocks)]
 
     @property
     def output_pattern(self):
