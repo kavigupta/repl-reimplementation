@@ -5,7 +5,9 @@ from repl.train import pretrain, finetune
 
 
 config = SquaresConfig()
-pretrain(SquaresPolicy(config, batch_size=16), lambda rng: sample(config, rng), np.random, n=10 ** 3)
+p = SquaresPolicy(config, batch_size=16)
+p = p.cuda()
+pretrain(p, lambda rng: sample(config, rng), np.random, n=10 ** 3)
 finetune(
     SquaresPolicy(config),
     SquaresValue(config),

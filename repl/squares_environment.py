@@ -98,7 +98,6 @@ class SquaresPolicy(torch.nn.Module, Policy):
             for k, v in dict(w=config.size, h=config.size, x=config.size, y=config.size, color=config.num_colors).items()
         }
         self._batch_size = batch_size
-        self.cuda()
 
     def forward(self, states):
         packed = self.packer(states)
