@@ -19,7 +19,7 @@ class Policy(ABC):
         pass
 
     def roll_forward(self, specs):
-        states = [(State(self.initial_program_set, spec), None) for spec in specs]
+        states = [(self.initial_state(spec), None) for spec in specs]
         states_sequences = []
         while not all(s.done for s, _ in states):
             states = self.update_states(states)
@@ -41,3 +41,6 @@ class Policy(ABC):
                 new_states.append((state.transition(best_action), best_action))
                 output_idx += 1
         return new_states
+
+    def initial_state(self, spec):
+        return State(self.initial_program_set, spec)

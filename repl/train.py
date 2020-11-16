@@ -17,10 +17,10 @@ def pretrain(policy, sampler, rng, n=10000, lr=1e-3):
     optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
     for idx, chunk in enumerate(chunked(data, policy.batch_size)):
         states, actions = zip(*chunk)
-        log_probs = policy(states)
-        _, predictions = log_probs.max(1)
-        acc = (predictions.numpy() == actions).mean()
-        loss = -log_probs[range(log_probs.shape[0]), actions].sum()
+        dist = policy(states)
+        predictions = dist.mle()
+        acc = np.mean([p == a for p, a in zip(predictions, actions)])
+        loss = -dist.log_probability(predictions)
         if idx % 100 == 0:
             print("Idx", idx, "Accuracy:", acc, "Loss:", loss.item())
         optimizer.zero_grad()
