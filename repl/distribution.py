@@ -22,7 +22,7 @@ class JointClassDistribution(Distribution):
     def mle(self):
         count = len(next(iter(self.by_parameter.values())))
         max_each = {
-            param: self.by_parameter[param].max(1)[1].numpy()
+            param: self.by_parameter[param].max(1)[1].cpu().numpy()
             for param in self.by_parameter
         }
         return [
