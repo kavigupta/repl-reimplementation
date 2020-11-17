@@ -21,7 +21,7 @@ def pretrain(policy, sampler, rng, n=10000, lr=1e-3, *, model_path):
         dist = policy(states)
         predictions = dist.mle()
         acc = np.mean([p == a for p, a in zip(predictions, actions)])
-        loss = -dist.log_probability(actions)
+        loss = -sum(dist.log_probability(actions))
         if idx % 100 == 0:
             print(f"Step {idx}, Accuracy: {acc * 100:.02f}% Loss: {loss.item()}")
             save_model(policy, model_path + "/p", policy.batch_size * idx)
@@ -57,7 +57,7 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
         rewards = torch.tensor(rewards).float().to(next(value.parameters()).device)
         value_reward = (rewards * v.log() + (1 - rewards) * (1 - v).log()).sum()
         dist = policy(states)
-        policy_reward = dist.log_probability(actions)
+        policy_reward = rewards * dist.log_probability(actions)
         loss = -(value_reward + policy_reward)
         optimizer.zero_grad()
         loss.backward()

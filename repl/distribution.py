@@ -34,4 +34,4 @@ class JointClassDistribution(Distribution):
         for param in self.by_parameter:
             values = [getattr(outcome, param) for outcome in outcomes]
             log_probs.append(self.by_parameter[param][range(len(values)), values].sum())
-        return sum(log_probs)
+        return log_probs
