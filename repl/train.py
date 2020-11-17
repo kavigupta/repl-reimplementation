@@ -7,7 +7,9 @@ from .state import State
 from .utils import save_model, shuffle_chunks
 
 
-def pretrain(policy, sampler, rng, n=10000, lr=1e-3, *, model_path):
+def pretrain(
+    policy, sampler, rng, n=10000, lr=1e-3, *, report_frequency=100, model_path
+):
     def data_iterator():
         for _ in range(n):
             spec, program = sampler(rng)
@@ -17,14 +19,19 @@ def pretrain(policy, sampler, rng, n=10000, lr=1e-3, *, model_path):
     data = shuffle_chunks(data_iterator(), int(n ** (2 / 3)), rng=rng)
 
     optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
+    losses, accs = [], []
     for idx, chunk in enumerate(chunked(data, policy.batch_size)):
         states, actions = zip(*chunk)
         dist = policy(states)
         predictions = dist.mle()
         acc = np.mean([p == a for p, a in zip(predictions, actions)])
         loss = -dist.log_probability(actions).sum()
-        if idx % 100 == 0:
-            print(f"Step {idx}, Accuracy: {acc * 100:.02f}% Loss: {loss.item()}")
+        losses.append(loss.item())
+        accs.append(acc)
+        if idx % report_frequency == 0:
+            print(
+                f"Step {idx}, Accuracy: {np.mean(accs[-report_frequency:]) * 100:.02f}% Loss: {np.mean(losses[-report_frequency:])}"
+            )
             save_model(policy, model_path + "/p", policy.batch_size * idx)
         optimizer.zero_grad()
         loss.backward()
