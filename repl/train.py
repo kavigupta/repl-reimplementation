@@ -57,7 +57,7 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
         rewards = torch.tensor(rewards).float().to(next(value.parameters()).device)
         value_reward = (rewards * v.log() + (1 - rewards) * (1 - v).log()).sum()
         dist = policy(states)
-        policy_reward = rewards * dist.log_probability(actions)
+        policy_reward = (rewards * dist.log_probability(actions)).sum()
         loss = -(value_reward + policy_reward)
         optimizer.zero_grad()
         loss.backward()
