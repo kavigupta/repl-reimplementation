@@ -4,9 +4,10 @@ import torch
 import numpy as np
 
 from .state import State
+from .utils import save_model
 
 
-def pretrain(policy, sampler, rng, n=10000, lr=1e-3):
+def pretrain(policy, sampler, rng, n=10000, lr=1e-3, *, model_path):
     data = []
     for _ in range(n):
         spec, program = sampler(rng)
@@ -20,9 +21,10 @@ def pretrain(policy, sampler, rng, n=10000, lr=1e-3):
         dist = policy(states)
         predictions = dist.mle()
         acc = np.mean([p == a for p, a in zip(predictions, actions)])
-        loss = -dist.log_probability(predictions)
+        loss = -dist.log_probability(actions)
         if idx % 100 == 0:
-            print("Idx", idx, "Accuracy:", acc, "Loss:", loss.item())
+            print(f"Step {idx}, Accuracy: {acc * 100:.02f}% Loss: {loss.item()}")
+            save_model(policy, model_path + "/p", policy.batch_size * idx)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -52,17 +54,21 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
         states, actions, rewards = zip(*chunk)
 
         v = value(states)
-        rewards = torch.tensor(rewards).float()
+        rewards = torch.tensor(rewards).float().to(next(value.parameters()).device)
         value_reward = (rewards * v.log() + (1 - rewards) * (1 - v).log()).sum()
-        log_probs = policy(states)
-        policy_reward = log_probs[range(log_probs.shape[0]), actions].sum()
+        dist = policy(states)
+        policy_reward = dist.log_probability(actions)
         loss = -(value_reward + policy_reward)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
 
-def finetune(policy, value, sampler, rng, n=10000, **kwargs):
+def finetune(policy, value, sampler, rng, n=10000, *, model_path, **kwargs):
     n_each = policy.batch_size * 10
+    step = 0
     for idxs in chunked(range(n), n_each):
         finetune_step(policy, value, sampler, rng, **kwargs, n=len(idxs))
+        step += len(idxs)
+        save_model(policy, model_path + "/pf", step)
+        save_model(value, model_path + "/vf", step)
