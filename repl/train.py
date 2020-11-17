@@ -21,7 +21,7 @@ def pretrain(policy, sampler, rng, n=10000, lr=1e-3, *, model_path):
         dist = policy(states)
         predictions = dist.mle()
         acc = np.mean([p == a for p, a in zip(predictions, actions)])
-        loss = -sum(dist.log_probability(actions))
+        loss = -dist.log_probability(actions).sum()
         if idx % 100 == 0:
             print(f"Step {idx}, Accuracy: {acc * 100:.02f}% Loss: {loss.item()}")
             save_model(policy, model_path + "/p", policy.batch_size * idx)

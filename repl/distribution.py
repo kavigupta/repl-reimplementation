@@ -33,5 +33,5 @@ class JointClassDistribution(Distribution):
         log_probs = []
         for param in self.by_parameter:
             values = [getattr(outcome, param) for outcome in outcomes]
-            log_probs.append(self.by_parameter[param][range(len(values)), values].sum())
-        return log_probs
+            log_probs.append(self.by_parameter[param][range(len(values)), values])
+        return torch.stack(log_probs).sum(0)
