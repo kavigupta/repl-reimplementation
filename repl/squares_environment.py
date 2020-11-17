@@ -88,7 +88,9 @@ class StatePacker(torch.nn.Module):
         spps = np.array([get_spp(state) for state in states])
         goals = np.array([state.spec.output_pattern for state in states])
         embedded_state = np.concatenate([spps, goals], axis=3)
-        embedded_state = embedded_state.transpose((0, 3, 1, 2)).astype(np.float32)
+        embedded_state = np.ascontiguousarray(
+            embedded_state.transpose((0, 3, 1, 2)).astype(np.float32)
+        )
         embedded_state = torch.tensor(embedded_state).to(
             next(iter(self.parameters())).device
         )
@@ -102,25 +104,27 @@ class StatePacker(torch.nn.Module):
 class SquaresPolicy(torch.nn.Module, Policy):
     def __init__(self, config, *, channels=100, batch_size=32):
         super().__init__()
-        self.packer = StatePacker(config, channels, layers=10)
+        self.packer = StatePacker(config, channels, layers=5)
         self.pooler = torch.nn.Conv2d(channels, config.size * 10, 1)
-        self.by_parameter = {
-            k: torch.nn.Linear(config.size * 10, v)
-            for k, v in dict(
-                w=config.size,
-                h=config.size,
-                x=config.size,
-                y=config.size,
-                color=config.num_colors,
-            ).items()
-        }
+        self.by_parameter = torch.nn.ModuleDict(
+            {
+                k: torch.nn.Linear(config.size * 10, v)
+                for k, v in dict(
+                    w=config.size,
+                    h=config.size,
+                    x=config.size,
+                    y=config.size,
+                    color=config.num_colors,
+                ).items()
+            }
+        )
         self._batch_size = batch_size
 
     def forward(self, states):
         packed = self.packer(states)
         packed = self.pooler(packed)
         packed = packed.max(-1)[0].max(-1)[0]
-        out = {k: v(packed) for k, v in self.by_parameter.items()}
+        out = {k: v(packed).log_softmax(-1) for k, v in self.by_parameter.items()}
         return JointClassDistribution(Square, out)
 
     @property
@@ -135,8 +139,11 @@ class SquaresPolicy(torch.nn.Module, Policy):
 class SquaresValue(torch.nn.Module):
     def __init__(self, config, channels=100, batch_size=32):
         super().__init__()
-        self.packer = StatePacker(config, channels)
-        self.cuda()
+        self.packer = StatePacker(config, channels, 5)
+        self.linear = torch.nn.Linear(channels, 1)
 
     def forward(self, states):
-        return self.packer(states)
+        x = self.packer(states)
+        x = x.max(-1)[0].max(-1)[0]
+        x = self.linear(x)
+        return x.sigmoid().squeeze(-1)
