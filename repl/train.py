@@ -4,25 +4,35 @@ import torch
 import numpy as np
 
 from .state import State
+from .utils import save_model, shuffle_chunks
 
 
-def pretrain(policy, sampler, rng, n=10000, lr=1e-3):
-    data = []
-    for _ in range(n):
-        spec, program = sampler(rng)
-        for pp, a in program.partials:
-            data.append((State(pp, spec), a))
-    rng.shuffle(data)
+def pretrain(
+    policy, sampler, rng, n=10000, lr=1e-3, *, report_frequency=100, model_path
+):
+    def data_iterator():
+        for _ in range(n):
+            spec, program = sampler(rng)
+            for pp, a in program.partials:
+                yield (State(pp, spec), a)
+
+    data = shuffle_chunks(data_iterator(), int(n ** (2 / 3)), rng=rng)
 
     optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
+    losses, accs = [], []
     for idx, chunk in enumerate(chunked(data, policy.batch_size)):
         states, actions = zip(*chunk)
-        log_probs = policy(states)
-        _, predictions = log_probs.max(1)
-        acc = (predictions.numpy() == actions).mean()
-        loss = -log_probs[range(log_probs.shape[0]), actions].sum()
-        if idx % 100 == 0:
-            print("Idx", idx, "Accuracy:", acc, "Loss:", loss.item())
+        dist = policy(states)
+        predictions = dist.mle()
+        acc = np.mean([p == a for p, a in zip(predictions, actions)])
+        loss = -dist.log_probability(actions).sum()
+        losses.append(loss.item())
+        accs.append(acc)
+        if idx % report_frequency == 0:
+            print(
+                f"Step {idx}, Accuracy: {np.mean(accs[-report_frequency:]) * 100:.02f}% Loss: {np.mean(losses[-report_frequency:])}"
+            )
+            save_model(policy, model_path + "/p", policy.batch_size * idx)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -52,17 +62,21 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
         states, actions, rewards = zip(*chunk)
 
         v = value(states)
-        rewards = torch.tensor(rewards).float()
+        rewards = torch.tensor(rewards).float().to(next(value.parameters()).device)
         value_reward = (rewards * v.log() + (1 - rewards) * (1 - v).log()).sum()
-        log_probs = policy(states)
-        policy_reward = log_probs[range(log_probs.shape[0]), actions].sum()
+        dist = policy(states)
+        policy_reward = (rewards * dist.log_probability(actions)).sum()
         loss = -(value_reward + policy_reward)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
 
-def finetune(policy, value, sampler, rng, n=10000, **kwargs):
+def finetune(policy, value, sampler, rng, n=10000, *, model_path, **kwargs):
     n_each = policy.batch_size * 10
+    step = 0
     for idxs in chunked(range(n), n_each):
         finetune_step(policy, value, sampler, rng, **kwargs, n=len(idxs))
+        step += len(idxs)
+        save_model(policy, model_path + "/pf", step)
+        save_model(value, model_path + "/vf", step)
