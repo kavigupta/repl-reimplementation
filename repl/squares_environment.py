@@ -19,8 +19,8 @@ class Square:
 
     @staticmethod
     def sample(config, rng):
-        x, y = rng.choice(config.size, size=2, replace=True) + 1
-        w, h = rng.choice(config.size // 2, size=2, replace=True)
+        x, y = rng.choice(config.size, size=2, replace=True)
+        w, h = rng.choice(config.size // 2, size=2, replace=True) + 1
         c = rng.choice(config.num_colors)
         return Square(w, h, x, y, c)
 
