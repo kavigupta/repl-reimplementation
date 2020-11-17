@@ -28,7 +28,7 @@ class Policy(ABC):
 
     def update_states(self, states):
         not_done = [state for state, _ in states if not state.done]
-        outputs = self(not_done)
+        outputs = self(not_done).mle()
         output_idx = 0
 
         new_states = []
@@ -36,8 +36,7 @@ class Policy(ABC):
             if state.done:
                 new_states.append((state, None))
             else:
-                distro = outputs[output_idx]
-                best_action = distro.argmax().item()
+                best_action = outputs[output_idx]
                 new_states.append((state.transition(best_action), best_action))
                 output_idx += 1
         return new_states
