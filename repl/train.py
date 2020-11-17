@@ -44,7 +44,7 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
     specs = [sampler(rng)[0] for _ in range(n)]
     rewards = []
     for idx, chunk in enumerate(chunked(specs, policy.batch_size)):
-        partials = policy.roll_forward(chunk)
+        partials = policy.roll_forward(chunk, rng)
         for partial in partials:
             last_state, _ = partial[-1]
             reward = last_state.is_goal

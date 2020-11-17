@@ -18,17 +18,17 @@ class Policy(ABC):
     def __call__(self, states):
         pass
 
-    def roll_forward(self, specs):
+    def roll_forward(self, specs, rng):
         states = [(self.initial_state(spec), None) for spec in specs]
         states_sequences = []
         while not all(s.done for s, _ in states):
-            states = self.update_states(states)
+            states = self.update_states(states, rng)
             states_sequences.append(states)
         return list(zip(*states_sequences))
 
-    def update_states(self, states):
+    def update_states(self, states, rng):
         not_done = [state for state, _ in states if not state.done]
-        outputs = self(not_done).mle()
+        outputs = self(not_done).sample(rng)
         output_idx = 0
 
         new_states = []

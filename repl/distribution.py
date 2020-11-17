@@ -13,21 +13,44 @@ class Distribution(ABC):
     def log_probability(self, outcomes):
         pass
 
+    @abstractmethod
+    def sample(self, rng):
+        pass
+
 
 @attr.s
 class JointClassDistribution(Distribution):
     type = attr.ib()
     by_parameter = attr.ib()
 
+    @property
+    def _count(self):
+        return len(next(iter(self.by_parameter.values())))
+
+    def _initialize(self, params_each):
+        return [
+            self.type(**{k: v[i] for k, v in params_each.items()})
+            for i in range(self._count)
+        ]
+
     def mle(self):
-        count = len(next(iter(self.by_parameter.values())))
         max_each = {
             param: self.by_parameter[param].max(1)[1].cpu().numpy()
             for param in self.by_parameter
         }
-        return [
-            self.type(**{k: v[i] for k, v in max_each.items()}) for i in range(count)
-        ]
+        return self._initialize(max_each)
+
+    def sample(self, rng):
+        sample_each = {}
+        for param in self.by_parameter:
+            old_seed = torch.random.get_rng_state()
+            torch.random.manual_seed(rng.randint(2 ** 32))
+            sample = torch.distributions.Categorical(
+                logits=self.by_parameter[param]
+            ).sample()
+            torch.random.set_rng_state(old_seed)
+            sample_each[param] = sample
+        return self._initialize(sample_each)
 
     def log_probability(self, outcomes):
         log_probs = []
