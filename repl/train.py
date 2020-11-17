@@ -4,16 +4,17 @@ import torch
 import numpy as np
 
 from .state import State
-from .utils import save_model
+from .utils import save_model, shuffle_chunks
 
 
 def pretrain(policy, sampler, rng, n=10000, lr=1e-3, *, model_path):
-    data = []
-    for _ in range(n):
-        spec, program = sampler(rng)
-        for pp, a in program.partials:
-            data.append((State(pp, spec), a))
-    rng.shuffle(data)
+    def data_iterator():
+        for _ in range(n):
+            spec, program = sampler(rng)
+            for pp, a in program.partials:
+                yield (State(pp, spec), a)
+
+    data = shuffle_chunks(data_iterator(), int(n ** (2 / 3)), rng=rng)
 
     optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
     for idx, chunk in enumerate(chunked(data, policy.batch_size)):

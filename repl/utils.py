@@ -1,6 +1,9 @@
 import os
 import torch
 
+import numpy as np
+from more_itertools import chunked
+
 
 def load_model(folder, step=None, architecture=lambda: None):
     kwargs = {}
@@ -26,3 +29,10 @@ def save_model(model, folder, step):
     except FileExistsError:
         pass
     torch.save(model, path)
+
+
+def shuffle_chunks(data, chunk_size, rng=np.random):
+    for chunk in chunked(data, chunk_size):
+        chunk = list(chunk)
+        rng.shuffle(chunk)
+        yield from chunk
