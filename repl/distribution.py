@@ -29,7 +29,7 @@ class IndependentDistribution(Distribution):
 
     def _initialize(self, params_each):
         return [
-            self.type(**{k: v[i] for k, v in params_each.items()})
+            self.type(**{k: v[i].item() for k, v in params_each.items()})
             for i in range(self._count)
         ]
 
