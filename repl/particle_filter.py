@@ -62,7 +62,8 @@ def repl_particle_filter(policy, value, spec, max_steps=100, n_particles=100, *,
         return new_states, weights
 
     def observation_model(states, observation):
-        return value(states)
+        with torch.no_grad():
+            return value(states)
 
     observations = [None] * max_steps
 
