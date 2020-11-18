@@ -14,10 +14,8 @@ def particle_filter(
 ):
     """
     Runs a particle filter.
-        transition_model: function that takes in a list of states [x_t] and returns a
-            list of [x_{t + 1}] along with probability weights. Effectively
-            returns a probability distribution p(x_{t + 1} | x_t)
-            for each of the input x_t.
+        transition_model: function that takes in a list of states [x_t] and an rng and returns a
+            list of [x_{t + 1}] sampled from each distribution, along with a list of weights [w_{t + 1}]
 
         observation_model: function that takes in a list of states [x_t] and an observation y_t and returns a
             list of weights [w_t]. Each of these weights corresponds to the given x_t
@@ -44,7 +42,7 @@ def particle_filter(
         sampler_weights /= np.sum(sampler_weights)
         indices = rng.choice(sampler_weights.size, p=sampler_weights, size=n_particles)
         x_vals = [x_vals[i] for i in indices]
-        x_vals, weights = transition_model(x_vals)
+        x_vals, weights = transition_model(x_vals, rng)
         weights = torch.tensor(weights)
 
     best_x = max([best_x] + [(objective(x), x) for x in x_vals], key=lambda x: x[0])
@@ -52,13 +50,15 @@ def particle_filter(
 
 
 def repl_particle_filter(policy, value, spec, max_steps=100, n_particles=100, *, rng):
-    def transition_model(states):
+    def transition_model(states, rng):
+        with torch.no_grad():
+            actions = policy(states).sample(rng)
+            print(set(actions))
+
         new_states, weights = [], []
-        for state, action_probs in zip(states, policy(states)):
-            new_states += [
-                state.transition(action) for action in range(len(action_probs))
-            ]
-            weights.extend(action_probs)
+        for state, action in zip(states, actions):
+            new_states.append(state.transition(action))
+            weights.append(1)
         return new_states, weights
 
     def observation_model(states, observation):
