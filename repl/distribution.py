@@ -19,7 +19,7 @@ class Distribution(ABC):
 
 
 @attr.s
-class JointClassDistribution(Distribution):
+class IndependentDistribution(Distribution):
     type = attr.ib()
     by_parameter = attr.ib()
 

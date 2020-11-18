@@ -6,7 +6,7 @@ import torch
 from .program import SequentialProgram
 from .policy import Policy
 from .specification import Spec
-from .distribution import JointClassDistribution
+from .distribution import IndependentDistribution
 
 
 @attr.s
@@ -125,7 +125,7 @@ class SquaresPolicy(torch.nn.Module, Policy):
         packed = self.pooler(packed)
         packed = packed.max(-1)[0].max(-1)[0]
         out = {k: v(packed).log_softmax(-1) for k, v in self.by_parameter.items()}
-        return JointClassDistribution(Square, out)
+        return IndependentDistribution(Square, out)
 
     @property
     def batch_size(self):
