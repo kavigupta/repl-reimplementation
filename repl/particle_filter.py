@@ -49,7 +49,16 @@ def particle_filter(
     return best_x[1]
 
 
-def repl_particle_filter(policy, value, spec, max_steps=100, n_particles=100, *, rng):
+def repl_particle_filter(
+    policy,
+    value,
+    spec,
+    max_steps=100,
+    n_particles=100,
+    objective=lambda state: state.is_goal,
+    *,
+    rng
+):
     def transition_model(states, rng):
         with torch.no_grad():
             actions = policy(states).sample(rng)
@@ -67,9 +76,6 @@ def repl_particle_filter(policy, value, spec, max_steps=100, n_particles=100, *,
 
     observations = [None] * max_steps
 
-
-    def objective(state):
-        return state.is_goal()
     prior = [policy.initial_state(spec)], [1]
 
     return particle_filter(
