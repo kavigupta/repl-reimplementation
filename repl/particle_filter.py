@@ -41,6 +41,7 @@ def particle_filter(
 
         obs_weights = observation_model(x_vals, obs).cpu()
         sampler_weights = (weights * obs_weights).numpy()
+        sampler_weights /= np.sum(sampler_weights)
         indices = rng.choice(sampler_weights.size, p=sampler_weights, size=n_particles)
         x_vals = [x_vals[i] for i in indices]
         x_vals, weights = transition_model(x_vals)
