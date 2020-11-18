@@ -3,6 +3,7 @@ import attr
 import numpy as np
 import torch
 
+from .autoregress import AutoRegressor, AutoRegressDistribution
 from .program import SequentialProgram
 from .policy import Policy
 from .specification import Spec
@@ -106,17 +107,19 @@ class SquaresPolicy(torch.nn.Module, Policy):
         super().__init__()
         self.packer = StatePacker(config, channels, layers=5)
         self.pooler = torch.nn.Conv2d(channels, config.size * 10, 1)
-        self.by_parameter = torch.nn.ModuleDict(
-            {
-                k: torch.nn.Linear(config.size * 10, v)
-                for k, v in dict(
+
+        self.autoregressor = AutoRegressor(
+            list(
+                dict(
                     w=config.size,
                     h=config.size,
                     x=config.size,
                     y=config.size,
                     color=config.num_colors,
                 ).items()
-            }
+            ),
+            hidden_size=config.size * 10,
+            n_layers=2,
         )
         self._batch_size = batch_size
 
@@ -124,8 +127,7 @@ class SquaresPolicy(torch.nn.Module, Policy):
         packed = self.packer(states)
         packed = self.pooler(packed)
         packed = packed.max(-1)[0].max(-1)[0]
-        out = {k: v(packed).log_softmax(-1) for k, v in self.by_parameter.items()}
-        return IndependentDistribution(Square, out)
+        return AutoRegressDistribution(self.autoregressor, packed, Square)
 
     @property
     def batch_size(self):
