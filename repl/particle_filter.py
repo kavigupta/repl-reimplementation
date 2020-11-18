@@ -39,7 +39,7 @@ def particle_filter(
     for obs in observations:
         best_x = max([best_x] + [(objective(x), x) for x in x_vals], key=lambda x: x[0])
 
-        obs_weights = torch.tensor(observation_model(x_vals, obs))
+        obs_weights = observation_model(x_vals, obs).cpu()
         sampler_weights = (weights * obs_weights).numpy()
         indices = rng.choice(sampler_weights.size, p=sampler_weights, size=n_particles)
         x_vals = [x_vals[i] for i in indices]
