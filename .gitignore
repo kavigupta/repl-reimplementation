@@ -1,2 +1,4 @@
 *.pyc
 logdirs
+.ipynb_checkpoints
+Untitled.ipynb
