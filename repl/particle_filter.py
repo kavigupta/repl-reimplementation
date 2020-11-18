@@ -66,10 +66,10 @@ def repl_particle_filter(policy, value, spec, max_steps=100, n_particles=100, *,
 
     observations = [None] * max_steps
 
-    prior = [policy.initial_state], [1]
 
     def objective(state):
         return state.is_goal()
+    prior = [policy.initial_state(spec)], [1]
 
     return particle_filter(
         transition_model=transition_model,
