@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from itertools import count
 
 import attr
 
@@ -39,6 +40,13 @@ class Variable(Atom):
         if not isinstance(s, str) or not s.startswith("$"):
             return Error()
         return cls(s)
+
+    @classmethod
+    def fresh_variable(cls, variables):
+        for i in count():
+            var_name = f"${i}"
+            if var_name not in variables:
+                return var_name
 
     def evaluate(self, env):
         return env[self.name]
