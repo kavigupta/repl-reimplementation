@@ -6,7 +6,7 @@ import numpy as np
 from drawing.parser import parse
 from drawing.renderer import render
 
-render_or_check = "render"
+render_or_check = "check"
 
 
 class TestParsing(unittest.TestCase):
