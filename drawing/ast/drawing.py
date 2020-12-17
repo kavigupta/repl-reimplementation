@@ -6,6 +6,7 @@ from ..transforms import TRANSFORMS
 from ..leaves import LEAVES
 from ..value import Item
 from .node import Atom, Form, Error
+from .expression import Variable
 
 
 @attr.s
@@ -94,6 +95,15 @@ class Repeat(SimpleForm):
             child_env[var.name] = i
             shape += body.evaluate(child_env)
         return shape
+
+    @classmethod
+    def custom_sample(cls, sampler, variables):
+        variable = Variable.fresh_variable(variables)
+        start, end = sampler.sample(variables, production="N"), sampler.sample(
+            variables, production="N"
+        )
+        body = sampler.sample(variables | {variable}, production="D")
+        return cls.parse("repeat", (variable, start, end, body))
 
 
 class If(SimpleForm):

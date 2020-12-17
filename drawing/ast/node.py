@@ -13,6 +13,10 @@ class Node(ABC):
     def evaluate(self, env):
         pass
 
+    @classmethod
+    def custom_sample(cls, sampler, variables):
+        pass
+
 
 class Atom(Node):
     @classmethod
