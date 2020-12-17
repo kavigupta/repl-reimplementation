@@ -1,6 +1,6 @@
 from operator import add, sub, mul, floordiv, mod, lt, le, gt, ge, eq
 
-OPERATIONS = {
+NUM_OPS = {
     "+": add,
     "-": sub,
     "*": mul,

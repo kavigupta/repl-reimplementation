@@ -4,7 +4,7 @@ import numpy as np
 
 from .leaves import LEAVES
 from .transforms import TRANSFORMS
-from .operations import OPERATIONS, COMPARISONS
+from .operations import NUM_OPS, COMPARISONS
 
 
 @attr.s
@@ -74,9 +74,9 @@ def evaluate_number(tree, env):
             return int(tree)
         except ValueError:
             raise SyntaxError(f"Expected numeric expression but received {tree}")
-    if tree[0] not in OPERATIONS:
+    if tree[0] not in NUM_OPS:
         raise SyntaxError(f"Unrecognized operation: {tree[0]}")
-    return OPERATIONS[tree[0]](
+    return NUM_OPS[tree[0]](
         evaluate_number(tree[1], env), evaluate_number(tree[2], env)
     )
 
