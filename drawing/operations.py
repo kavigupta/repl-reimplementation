@@ -16,6 +16,7 @@ COMPARISONS = {
     "=": eq,
 }
 
-BOOL_OPS = {"and": and_, "or": or_, "~": not_}
+BOOL_BINARY_OPS = {"and": and_, "or": or_}
+BOOL_UNARY_OP = {"~": not_}
 
-OPERATIONS = {**NUM_OPS, **COMPARISONS, **BOOL_OPS}
+OPERATIONS = {**NUM_OPS, **COMPARISONS, **BOOL_BINARY_OPS, **BOOL_UNARY_OP}

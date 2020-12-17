@@ -4,7 +4,6 @@ from PIL import Image
 import numpy as np
 
 from drawing.parser import parse
-from drawing.executor import execute
 from drawing.renderer import render
 
 render_or_check = "check"
@@ -12,7 +11,7 @@ render_or_check = "check"
 
 class TestParsing(unittest.TestCase):
     def render_or_check(self, name, program, env={}):
-        image = render(execute(parse(program), env))
+        image = render(parse(program).evaluate(env))
 
         image = (image * 255).astype(np.uint8)
 
