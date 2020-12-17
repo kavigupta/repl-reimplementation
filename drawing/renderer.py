@@ -14,14 +14,6 @@ def invert_transform(t, coordinates):
     return rescaled
 
 
-def circle(x, y):
-    return x * x + y * y <= 1
-
-
-def square(x, y):
-    return np.maximum(np.abs(x), np.abs(y)) <= 1
-
-
 def render(items, size=(100, 100)):
     w, h = size
     x, y = np.meshgrid(np.arange(w) - w / 2, h / 2 - np.arange(h))

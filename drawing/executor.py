@@ -3,7 +3,7 @@ import attr
 import numpy as np
 from operator import add, sub, mul, floordiv, mod, lt, le, gt, ge, eq
 
-from .renderer import circle, square
+from .leaves import LEAVES
 from .transforms import TRANSFORMS
 
 
@@ -21,14 +21,8 @@ def check_form(length, tree):
 
 
 def execute(tree, env):
-    if tree == "null":
-        return []
-    if tree == "circle":
-        return [Item(circle)]
-    if tree == "square":
-        return [Item(square)]
-    if not isinstance(tree, list):
-        raise SyntaxError(f"unexpected token {tree}")
+    if isinstance(tree, str):
+        return [Item(LEAVES[tree])]
     if tree[0] in TRANSFORMS:
         check_form(3, tree)
         shapes = execute(tree[2], env)
