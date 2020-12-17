@@ -6,12 +6,12 @@ import numpy as np
 from drawing.parser import parse
 from drawing.renderer import render
 
-render_or_check = "check"
+render_or_check = "render"
 
 
 class TestParsing(unittest.TestCase):
     def render_or_check(self, name, program, env={}):
-        image = render(parse(program).evaluate(env))
+        image = render(parse(program).evaluate(env), stretch=1)
 
         image = (image * 255).astype(np.uint8)
 
@@ -57,4 +57,18 @@ class TestParsing(unittest.TestCase):
         self.render_or_check(
             "parabola",
             "(repeat $0 -30 30 (translateY (/ (* $0 $0) 30) (translateX $0 circle)))",
+        )
+
+    def test_parabola(self):
+        self.render_or_check(
+            "star-field",
+            """
+            (combine
+                (color 0 0 128 (scale 100 square))
+                (repeat $0 -3 4
+                    (repeat $1 -3 4
+                        (translateX (* 12 $0) (translateY (* 12 $1)
+                            (scale 5
+                                (color 255 255 255 (ife (= (% (+ $0 $1) 2) 0) circle square))))))))
+            """,
         )
