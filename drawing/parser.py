@@ -1,5 +1,5 @@
 from .grammar import grammar
-from .ast import ParseError, Atom, Form
+from .ast.node import ParseError, Atom, Form
 
 MATCHED_PARENS = {"(": ")", "[": "]", "{": "}"}
 PARENS = set(MATCHED_PARENS.keys()) | set(MATCHED_PARENS.values())

@@ -1,10 +1,13 @@
-from .ast import (
+from .ast.expression import (
     Constant,
     Variable,
     NumericOperation,
     Comparison,
     BooleanBinaryOp,
     BooleanUnaryOp,
+)
+
+from .ast.drawing import (
     Primitive,
     Transform,
     Color,
