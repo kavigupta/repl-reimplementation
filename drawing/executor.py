@@ -57,7 +57,7 @@ def execute(tree, env):
             shape += execute(tree[4], child_env)
         return shape
     if tree[0] == "if":
-        return execute(["ife", *tree[1:], "null"])
+        return execute(["ife", *tree[1:], "null"], env)
     if tree[0] == "ife":
         if evaluate(tree[1], env):
             return execute(tree[2], env)
