@@ -4,7 +4,7 @@ import numpy as np
 
 from .leaves import LEAVES
 from .transforms import TRANSFORMS
-from .operations import NUM_OPS, COMPARISONS
+from .operations import OPERATIONS
 
 
 @attr.s
@@ -29,7 +29,7 @@ def execute(tree, env):
         return [
             Item(
                 shape.type,
-                TRANSFORMS[tree[0]](evaluate_number(tree[1], env)) @ shape.transform,
+                TRANSFORMS[tree[0]](evaluate(tree[1], env)) @ shape.transform,
                 shape.color,
             )
             for shape in shapes
@@ -37,9 +37,9 @@ def execute(tree, env):
     if tree[0] == "color":
         check_form(5, tree)
         color = (
-            evaluate_number(tree[1], env),
-            evaluate_number(tree[2], env),
-            evaluate_number(tree[3], env),
+            evaluate(tree[1], env),
+            evaluate(tree[2], env),
+            evaluate(tree[3], env),
         )
         shapes = execute(tree[4], env)
         return [Item(shape.type, shape.transform, color) for shape in shapes]
@@ -49,7 +49,7 @@ def execute(tree, env):
         return shapes1 + shapes2
     if tree[0] == "repeat":
         check_form(5, tree)
-        lower, upper = evaluate_number(tree[2], env), evaluate_number(tree[3], env)
+        lower, upper = evaluate(tree[2], env), evaluate(tree[3], env)
         shape = []
         for i in range(int(lower), int(upper)):
             child_env = env.copy()
@@ -59,39 +59,24 @@ def execute(tree, env):
     if tree[0] == "if":
         return execute(["ife", *tree[1:], "null"])
     if tree[0] == "ife":
-        if evaluate_cond(tree[1], env):
+        if evaluate(tree[1], env):
             return execute(tree[2], env)
         else:
             return execute(tree[3], env)
     raise SyntaxError(f"Unexpected form: {tree[0]}")
 
 
-def evaluate_number(tree, env):
+def evaluate(tree, env):
     if tree[0] == "$":
         return env[tree]
     if isinstance(tree, str):
         try:
             return int(tree)
         except ValueError:
-            raise SyntaxError(f"Expected numeric expression but received {tree}")
-    if tree[0] not in NUM_OPS:
+            raise SyntaxError(f"Expected expression but received {tree}")
+    if tree[0] not in OPERATIONS:
         raise SyntaxError(f"Unrecognized operation: {tree[0]}")
-    return NUM_OPS[tree[0]](
-        evaluate_number(tree[1], env), evaluate_number(tree[2], env)
-    )
 
+    arguments = [evaluate(b, env) for b in tree[1:]]
 
-def evaluate_cond(tree, env):
-    if tree[0] in COMPARISONS:
-        return COMPARISONS[tree[0]](
-            evaluate_number(tree[1], env),
-            evaluate_number(tree[2], env),
-        )
-    if tree[0] == "and":
-        return evaluate_cond(tree[1], env) and evaluate_cond(tree[2], env)
-    if tree[0] == "or":
-        return evaluate_cond(tree[1], env) or evaluate_cond(tree[2], env)
-    if tree[0] == "not":
-        return not evaluate_cond(tree[1], env)
-
-    raise SyntaxError(f"Unrecognized condition operation {tree[0]}")
+    return OPERATIONS[tree[0]](*arguments)
