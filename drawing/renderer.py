@@ -2,7 +2,6 @@ import numpy as np
 
 
 def invert_transform(t, coordinates):
-    print(t)
     assert t.shape == (3, 3)
     A = t[:2, :2]
     b = t[:2, 2]
