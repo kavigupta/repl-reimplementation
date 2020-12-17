@@ -26,5 +26,6 @@ class Form(ABC):
         pass
 
 
-class ParseError(Exception):
-    pass
+class Error(Node):
+    def evaluate(self, env):
+        raise SyntaxError("error in parsing")

@@ -1,5 +1,5 @@
 from .grammar import grammar
-from .ast.node import ParseError, Atom, Form
+from .ast.node import Atom, Form, Error
 
 MATCHED_PARENS = {"(": ")", "[": "]", "{": "}"}
 PARENS = set(MATCHED_PARENS.keys()) | set(MATCHED_PARENS.values())
@@ -42,11 +42,10 @@ def parse_grammar(s, grammar, production):
     if isinstance(production, str):
         rules = grammar[production]
         for rule in rules:
-            try:
-                return parse_grammar(s, grammar, rule)
-            except ParseError:
-                pass
-        raise ParseError
+            result = parse_grammar(s, grammar, rule)
+            if not isinstance(result, Error):
+                return result
+        return Error()
 
     if isinstance(production, type) and issubclass(production, Atom):
         return production.parse(s)
@@ -56,10 +55,10 @@ def parse_grammar(s, grammar, production):
     )
 
     if len(production) != len(s):
-        raise ParseError
+        return Error()
 
     if s[0] not in production[0].tags():
-        raise ParseError
+        return Error()
 
     operands = [
         parse_grammar(b, grammar, prod) for b, prod in zip(s[1:], production[1:])

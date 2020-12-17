@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import attr
 
-from .node import Atom, Form, ParseError
+from .node import Atom, Form, Error
 from ..operations import NUM_OPS
 
 
@@ -15,7 +15,7 @@ class Constant(Atom):
         try:
             return cls(int(s))
         except (ValueError, TypeError):
-            raise ParseError
+            return Error()
 
     def evaluate(self, env):
         return self.value
@@ -28,7 +28,7 @@ class Variable(Atom):
     @classmethod
     def parse(cls, s):
         if not isinstance(s, str) or not s.startswith("$"):
-            raise ParseError
+            return Error()
         return cls(s)
 
     def evaluate(self, env):

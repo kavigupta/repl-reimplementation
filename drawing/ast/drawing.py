@@ -5,7 +5,7 @@ import attr
 from ..transforms import TRANSFORMS
 from ..leaves import LEAVES
 from ..value import Item
-from .node import Atom, Form, ParseError
+from .node import Atom, Form, Error
 
 
 @attr.s
@@ -16,7 +16,7 @@ class Primitive(Atom):
     def parse(cls, s):
         if isinstance(s, str) and s in LEAVES:
             return cls(s)
-        raise ParseError
+        return Error()
 
     def evaluate(self, env):
         return [Item(LEAVES[self.tag])]
