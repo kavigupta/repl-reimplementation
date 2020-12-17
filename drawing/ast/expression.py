@@ -3,12 +3,17 @@ from abc import ABC, abstractmethod
 import attr
 
 from .node import Atom, Form, Error
+from ..constants import NUM_VARS, CONSTANTS_RANGE
 from ..operations import NUM_OPS, COMPARISONS
 
 
 @attr.s
 class Constant(Atom):
     value = attr.ib()
+
+    @classmethod
+    def tags(cls):
+        return [str(i) for i in range(-CONSTANTS_RANGE, CONSTANTS_RANGE + 1)]
 
     @classmethod
     def parse(cls, s):
@@ -24,6 +29,10 @@ class Constant(Atom):
 @attr.s
 class Variable(Atom):
     name = attr.ib()
+
+    @classmethod
+    def tags(cls):
+        return [f"${i}" for i in range(NUM_VARS)]
 
     @classmethod
     def parse(cls, s):

@@ -13,6 +13,10 @@ class Primitive(Atom):
     tag = attr.ib()
 
     @classmethod
+    def tags(cls):
+        return list(LEAVES)
+
+    @classmethod
     def parse(cls, s):
         if isinstance(s, str) and s in LEAVES:
             return cls(s)

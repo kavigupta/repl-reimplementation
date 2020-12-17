@@ -4,24 +4,24 @@ import attr
 
 
 class Node(ABC):
+    @classmethod
+    @abstractmethod
+    def tags(cls):
+        pass
+
     @abstractmethod
     def evaluate(self, env):
         pass
 
 
-class Atom(ABC):
+class Atom(Node):
     @classmethod
     @abstractmethod
     def parse(cls, s):
         pass
 
 
-class Form(ABC):
-    @classmethod
-    @abstractmethod
-    def tags(cls):
-        pass
-
+class Form(Node):
     @classmethod
     @abstractmethod
     def parse(cls, tag, operands):
@@ -30,5 +30,9 @@ class Form(ABC):
 
 @attr.s
 class Error(Node):
+    @classmethod
+    def tags(cls):
+        raise SyntaxError("error in parsing")
+
     def evaluate(self, env):
         raise SyntaxError("error in parsing")
