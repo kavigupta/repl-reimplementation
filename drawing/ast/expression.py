@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import attr
 
 from .node import Atom, Form, Error
-from ..operations import NUM_OPS
+from ..operations import NUM_OPS, COMPARISONS
 
 
 @attr.s
