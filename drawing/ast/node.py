@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import attr
+
 
 class Node(ABC):
     @abstractmethod
@@ -26,6 +28,7 @@ class Form(ABC):
         pass
 
 
+@attr.s
 class Error(Node):
     def evaluate(self, env):
         raise SyntaxError("error in parsing")
