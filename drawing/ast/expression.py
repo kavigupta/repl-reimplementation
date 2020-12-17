@@ -5,7 +5,7 @@ import attr
 
 from .node import Atom, Form, Error
 from ..constants import NUM_VARS, CONSTANTS_RANGE
-from ..operations import NUM_OPS, COMPARISONS
+from ..operations import NUM_OPS, BOOL_BINARY_OPS, BOOL_UNARY_OP, COMPARISONS
 
 
 @attr.s
