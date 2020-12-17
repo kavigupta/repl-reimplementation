@@ -1,10 +1,10 @@
 import attr
 
 import numpy as np
-from operator import add, sub, mul, floordiv, mod, lt, le, gt, ge, eq
 
 from .leaves import LEAVES
 from .transforms import TRANSFORMS
+from .operations import OPERATIONS, COMPARISONS
 
 
 @attr.s
@@ -66,15 +66,6 @@ def execute(tree, env):
     raise SyntaxError(f"Unexpected form: {tree[0]}")
 
 
-OPERATIONS = {
-    "+": add,
-    "-": sub,
-    "*": mul,
-    "/": floordiv,
-    "%": mod,
-}
-
-
 def evaluate_number(tree, env):
     if tree[0] == "$":
         return env[tree]
@@ -88,15 +79,6 @@ def evaluate_number(tree, env):
     return OPERATIONS[tree[0]](
         evaluate_number(tree[1], env), evaluate_number(tree[2], env)
     )
-
-
-COMPARISONS = {
-    "<": lt,
-    "<=": le,
-    ">": gt,
-    ">=": ge,
-    "=": eq,
-}
 
 
 def evaluate_cond(tree, env):
