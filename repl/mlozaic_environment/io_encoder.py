@@ -25,6 +25,7 @@ class MLozaicIOEncoder(nn.Module, IOEncoder):
 
     The result is then transformed into alphabet space and max-pooled.
     """
+
     def __init__(
         self, *, image_size=(100, 100, len(COLORS)), patch_size=5, embedding_size
     ):
