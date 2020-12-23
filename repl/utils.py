@@ -1,4 +1,7 @@
 import os
+
+import attr
+
 import torch
 
 import numpy as np
@@ -36,3 +39,70 @@ def shuffle_chunks(data, chunk_size, rng=np.random):
         chunk = list(chunk)
         rng.shuffle(chunk)
         yield from chunk
+
+
+@attr.s
+class JaggedEmbeddings:
+    """
+    Represents a jagged array of 2d embeddings.
+
+    For example, if you want to represent [[a, b], [c, d, e]],
+        you would represent it as
+
+        InputEmbeddings([a, b, c, d, e], [[0, 1], [2, 3, 4]])
+    """
+
+    embeddings = attr.ib()
+    indices_for_each = attr.ib()
+
+    @property
+    def _original_index(self):
+        result = [None] * len(self.embeddings)
+        for original_idx, indices in enumerate(self.indices_for_each):
+            for idx in indices:
+                result[idx] = original_idx
+        return result
+
+    def tile(self, extra):
+        assert extra.shape[0] == len(self.indices_for_each)
+        return extra[self._original_index]
+
+    def cat(self, extra):
+        assert extra.shape[0] == len(self.embeddings)
+        return JaggedEmbeddings(
+            torch.cat([self.embeddings, extra], dim=0), self.indices_for_each
+        )
+
+    def replace(self, new_embeddings):
+        assert self.embeddings.shape[0] == new_embeddings.shape[0]
+        return JaggedEmbeddings(new_embeddings, self.indices_for_each)
+
+    def max_pool(self):
+        """
+        Pool everything in the same index class by max
+        """
+        return torch.stack(
+            [self.embeddings[idxs].max(0)[0] for idxs in self.indices_for_each]
+        )
+
+
+@attr.s
+class PaddedSequence:
+    sequences = attr.ib()  # N x L
+    mask = attr.ib()  # N x l
+
+    @staticmethod
+    def of(values, dtype):
+        N = len(values)
+        L = max(len(v) for v in values)
+        sequences, mask = torch.zeros((N, L), dtype=dtype), torch.zeros(
+            (N, L), dtype=torch.bool
+        )
+        for i, v in enumerate(values):
+            sequences[i, : len(v)] = torch.tensor(v)
+            mask[i, : len(v)] = 1
+        return PaddedSequence(sequences, mask)
+
+    @property
+    def L(self):
+        return self.mask.shape[1]
