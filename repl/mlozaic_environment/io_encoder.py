@@ -12,8 +12,21 @@ from ..utils import JaggedEmbeddings
 
 
 class MLozaicIOEncoder(nn.Module, IOEncoder):
+    """
+    Rough implementation of a vision transformer: https://arxiv.org/pdf/2010.11929.pdf
+
+    Rather than dealing with multiple lengths, it just pads out extra variables with a special token
+
+    The positional embedding is added to the image tokens but not to the variable tokens, which
+        have no concept of position.
+
+    A transformer encoder is used to encode the input, and then another transformer is used
+        to autoregress over the previous sequential values and produce an output.
+
+    The result is then transformed into alphabet space and max-pooled.
+    """
     def __init__(
-        self, *, image_size=(100, 100, len(COLORS)), patch_size=10, embedding_size
+        self, *, image_size=(100, 100, len(COLORS)), patch_size=5, embedding_size
     ):
         super().__init__()
 

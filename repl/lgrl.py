@@ -14,6 +14,11 @@ from .utils import JaggedEmbeddings, PaddedSequence
 class LGRL(nn.Module):
     def __init__(self, io_encoder, *, embedding_size):
         """
+        Implementation of LGRL: https://arxiv.org/pdf/1805.04276.pdf
+
+        One subtlety is that we allow for non-recurrent IO encoders. By using a conv + LSTM
+            this should be exactly as described in the paper.
+
         Arguments:
             io_encoder: an IOEncoder object
             alphabet_size: the size of the alphabet to use. This should have
