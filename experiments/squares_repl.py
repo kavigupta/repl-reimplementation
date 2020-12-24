@@ -6,12 +6,11 @@ from repl.train import pretrain, finetune
 model_path = "logdirs/squares_repl_0"
 config = SquaresConfig(size=10)
 
-
-p = SquaresPolicy(config, batch_size=64).cuda()
-v = SquaresValue(config).cuda()
+pa = lambda: SquaresPolicy(config, batch_size=64).cuda()
+va = lambda: SquaresValue(config).cuda()
 rng = np.random.RandomState(0)
 pretrain(
-    p,
+    pa,
     lambda rng: sample(config, rng),
     rng,
     n=10 ** 6,
@@ -19,8 +18,8 @@ pretrain(
     model_path=model_path,
 )
 finetune(
-    p,
-    v,
+    pa,
+    va,
     lambda rng: sample(config, rng),
     rng,
     model_path=model_path,

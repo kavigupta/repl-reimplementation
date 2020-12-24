@@ -4,11 +4,31 @@ import torch
 import numpy as np
 
 from .state import State
-from .utils import save_model, shuffle_chunks
+from .utils import load_model, save_model, shuffle_chunks
+
+
+def train_generic(data, train_fn, report_fn, architectures, paths, save_frequency):
+    models = []
+    min_step = float("inf")
+    for arch, path in zip(architectures, paths):
+        model, step = load_model(path, architecture=arch)
+        models.append(model)
+        min_step = min(step, min_step)
+
+    outputs = []
+    for idx, chunk in enumerate(data):
+        if idx < step:
+            continue
+        outputs.append(train_fn(*models, idx, chunk))
+        if (idx + 1) % save_frequency == 0:
+            save_model(*models, path, idx)
+            print(f"[{datetime.now()}]: s={idx}, {report_fn(idx, outputs)}")
+            outputs = []
+    return models
 
 
 def pretrain(
-    policy, sampler, rng, n=10000, lr=1e-3, *, report_frequency=100, model_path
+    policy_arch, sampler, rng, n=10000, lr=1e-3, *, report_frequency=100, model_path
 ):
     def data_iterator():
         for _ in range(n):
@@ -16,26 +36,32 @@ def pretrain(
             for pp, a in program.partials:
                 yield (State(pp, spec), a)
 
-    data = shuffle_chunks(data_iterator(), int(n ** (2 / 3)), rng=rng)
-
-    optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
-    losses, accs = [], []
-    for idx, chunk in enumerate(chunked(data, policy.batch_size)):
+    def train_fn(policy, idx, chunk):
+        optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
         states, actions = zip(*chunk)
         dist = policy(states)
         predictions = dist.mle()
-        acc = np.mean([p == a for p, a in zip(predictions, actions)])
-        loss = -dist.log_probability(actions).sum()
-        losses.append(loss.item())
-        accs.append(acc)
-        if idx % report_frequency == 0:
-            print(
-                f"Step {idx}, Accuracy: {np.mean(accs[-report_frequency:]) * 100:.02f}% Loss: {np.mean(losses[-report_frequency:])}"
-            )
-            save_model(policy, model_path + "/p", policy.batch_size * idx)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        acc = np.mean([p == a for p, a in zip(predictions, actions)])
+        loss = -dist.log_probability(actions).sum()
+        return acc, loss
+
+    def report_fn(outputs):
+        accs, losses = np.array(outputs).T
+        return f"Accuracy: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
+
+    data = shuffle_chunks(data_iterator(), int(n ** (2 / 3)), rng=rng)
+
+    train_generic(
+        chunked(data, policy.batch_size),
+        train_fn,
+        report_fn,
+        [policy_arch],
+        [model_path + "/p"],
+        report_frequency,
+    )
 
 
 def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
@@ -53,7 +79,6 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
                 if action is None:
                     continue
                 data.append((state, action, reward))
-    print(f"Rewards: {np.mean(rewards):.2f}")
     rng.shuffle(data)
 
     optimizer = torch.optim.Adam([*policy.parameters(), *value.parameters()], lr=lr)
@@ -70,13 +95,17 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+    return rewards
 
 
 def finetune(policy, value, sampler, rng, n=10000, *, model_path, **kwargs):
-    n_each = policy.batch_size * 10
-    step = 0
-    for idxs in chunked(range(n), n_each):
-        finetune_step(policy, value, sampler, rng, **kwargs, n=len(idxs))
-        step += len(idxs)
-        save_model(policy, model_path + "/pf", step)
-        save_model(value, model_path + "/vf", step)
+    train_generic(
+        data=chunked(range(n), n_each),
+        train_fn=lambda policy, value, idx, chunk: finetune_step(
+            policy, value, sampler, rng, **kwargs, n=len(chunk)
+        ),
+        report_fn=lambda outs: f"Reward: {outs[0]}",
+        architectures=[policy, value],
+        paths=[model_path + "/pf", model_path + "/vf"],
+        save_frequency=1,
+    )
