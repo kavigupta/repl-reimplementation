@@ -11,7 +11,7 @@ def train_generic(data, train_fn, report_fn, architectures, paths, save_frequenc
     models = []
     min_step = float("inf")
     for arch, path in zip(architectures, paths):
-        model, step = load_model(path, architecture=arch)
+        step, model = load_model(path, architecture=arch)
         models.append(model)
         min_step = min(step, min_step)
 
