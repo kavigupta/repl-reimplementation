@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from repl.lgrl import LGRL
@@ -15,7 +16,7 @@ def train_fn(model, idx, chunk):
     return loss.item()
 
 
-def report_fn(outputs):
+def report_fn(idx, outputs):
     return f"Loss: {np.mean(outputs)}"
 
 
