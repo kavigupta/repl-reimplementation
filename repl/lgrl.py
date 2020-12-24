@@ -75,7 +75,6 @@ class LGRL(nn.Module):
         pred, state = self.begin_inference(specs, normalize_logits=False)
         losses = []
         for t in range(programs.L):
-            print(t)
             actual = programs.sequences[:, t]
             losses.append(self._xe(pred, actual, programs.mask[:, t]))
             if t < programs.L - 1:
