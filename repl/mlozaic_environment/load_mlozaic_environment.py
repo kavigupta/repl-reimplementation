@@ -34,6 +34,7 @@ def dataset_iter(segment, split=0.1, dataset=standard_dataset, seed=0):
     np.random.RandomState(seed).shuffle(indices)
     for i in indices:
         program, inputs = dataset[str(i)]
+        inputs = inputs[:-1]
         spec = [
             MLozaicPair(
                 inp, render(program.evaluate(inp), size=(50, 50), stretch=2, rgb=False)
