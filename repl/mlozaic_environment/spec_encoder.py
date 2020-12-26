@@ -7,11 +7,11 @@ import torch.nn as nn
 from mlozaic.colors import COLORS
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
-from ..lgrl import IOEncoder
+from ..lgrl import SpecEncoder
 from ..utils import JaggedEmbeddings
 
 
-class MLozaicIOEncoder(nn.Module, IOEncoder):
+class MLozaicSpecEncoder(nn.Module, SpecEncoder):
     """
     Rough implementation of a vision transformer: https://arxiv.org/pdf/2010.11929.pdf
 

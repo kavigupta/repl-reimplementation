@@ -12,15 +12,15 @@ from .utils import JaggedEmbeddings, PaddedSequence
 
 
 class LGRL(nn.Module):
-    def __init__(self, io_encoder, *, embedding_size):
+    def __init__(self, spec_encoder, *, embedding_size):
         """
         Implementation of LGRL: https://arxiv.org/pdf/1805.04276.pdf
 
-        One subtlety is that we allow for non-recurrent IO encoders. By using a conv + LSTM
+        One subtlety is that we allow for non-recurrent specification encoders. By using a conv + LSTM
             this should be exactly as described in the paper.
 
         Arguments:
-            io_encoder: an IOEncoder object
+            spec_encoder: an SpecEncoder object
             alphabet_size: the size of the alphabet to use. This should have
                 0 for <s> and 1 for </s>
         """
@@ -30,15 +30,17 @@ class LGRL(nn.Module):
         self.embedding_size = embedding_size
 
         self.embedding = nn.Embedding(alphabet_size, embedding_size)
-        self.io_encoder = io_encoder
+        self.spec_encoder = spec_encoder
         self.decoder_out = nn.Linear(embedding_size, embedding_size)
         self.syntax = nn.LSTMCell(input_size=embedding_size, hidden_size=embedding_size)
         self.syntax_out = nn.Linear(embedding_size, alphabet_size)
 
     def forward(self, inference_state, choices, normalize_logits=True):
         embedded_tokens = self.embedding(choices)
-        new_decoder_state, decoder_out = self.io_encoder.evolve_hidden_state(
-            inference_state.decoder_state, inference_state.io_embedding, embedded_tokens
+        new_decoder_state, decoder_out = self.spec_encoder.evolve_hidden_state(
+            inference_state.decoder_state,
+            inference_state.spec_embedding,
+            embedded_tokens,
         )
         new_syntax_state = self.syntax(embedded_tokens)
 
@@ -49,19 +51,19 @@ class LGRL(nn.Module):
             prediction_vector = prediction_vector.log_softmax(-1)
         new_state = LGRLInferenceState(
             lgrl=inference_state.lgrl,
-            io_embedding=inference_state.io_embedding,
+            spec_embedding=inference_state.spec_embedding,
             decoder_state=new_decoder_state,
             syntax_state=new_syntax_state,
         )
         return prediction_vector, new_state
 
     def begin_inference(self, specs, **kwargs):
-        io_embedding = self.io_encoder.encode(specs)
-        decoder_state = self.io_encoder.initial_hidden_state(io_embedding)
+        spec_embedding = self.spec_encoder.encode(specs)
+        decoder_state = self.spec_encoder.initial_hidden_state(spec_embedding)
         syntax_state = torch.zeros(2, len(specs), self.embedding_size)
         state = LGRLInferenceState(
             lgrl=self,
-            io_embedding=io_embedding,
+            spec_embedding=spec_embedding,
             decoder_state=decoder_state,
             syntax_state=syntax_state,
         )
@@ -85,7 +87,7 @@ class LGRL(nn.Module):
         return F.cross_entropy(pred[mask], actual[mask])
 
 
-class IOEncoder(ABC):
+class SpecEncoder(ABC):
     @abstractmethod
     def encode(self, specs, alphabet_embedding):
         pass
@@ -109,7 +111,7 @@ class IOEncoder(ABC):
 @attr.s
 class LGRLInferenceState:
     lgrl = attr.ib()
-    io_embedding = attr.ib()
+    spec_embedding = attr.ib()
     decoder_state = attr.ib()
     syntax_state = attr.ib()
 
