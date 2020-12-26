@@ -37,8 +37,14 @@ def particle_filter(
     for obs in observations:
         best_x = max([best_x] + [(objective(x), x) for x in x_vals], key=lambda x: x[0])
 
-        obs_weights = observation_model(x_vals, obs).cpu()
-        sampler_weights = (weights * obs_weights).numpy()
+        obs_weights = observation_model(x_vals, obs)
+        if obs_weights is not None:
+            obs_weights = obs_weights.cpu()
+            sampler_weights = (weights * obs_weights).numpy()
+        else:
+            sampler_weights = weights.numpy().astype(np.float32)
+        # print(obs_weights)
+        # print([objective(x) for x in x_vals])
         sampler_weights /= np.sum(sampler_weights)
         indices = rng.choice(sampler_weights.size, p=sampler_weights, size=n_particles)
         x_vals = [x_vals[i] for i in indices]
@@ -62,7 +68,6 @@ def repl_particle_filter(
     def transition_model(states, rng):
         with torch.no_grad():
             actions = policy(states).sample(rng)
-            print(set(actions))
 
         new_states, weights = [], []
         for state, action in zip(states, actions):
@@ -72,6 +77,8 @@ def repl_particle_filter(
 
     def observation_model(states, observation):
         with torch.no_grad():
+            if value is None:
+                return None
             return value(states)
 
     observations = [None] * max_steps

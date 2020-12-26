@@ -12,7 +12,7 @@ def fcnet(*layer_sizes):
     for input_size, output_size in zip(layer_sizes, layer_sizes[1:]):
         modules.append(torch.nn.Linear(input_size, output_size))
         modules.append(torch.nn.ReLU())
-    return torch.nn.Sequential(*modules)
+    return torch.nn.Sequential(*modules[:-1])
 
 
 class AutoRegressor(torch.nn.Module):

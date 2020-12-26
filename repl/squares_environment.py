@@ -10,7 +10,7 @@ from .specification import Spec
 from .distribution import IndependentDistribution
 
 
-@attr.s
+@attr.s(hash=True)
 class Square:
     w = attr.ib()
     h = attr.ib()
@@ -61,12 +61,31 @@ class SquaresSpec(Spec):
         return np.all(self.partially_execute(program) == self.output_pattern)
 
 
+def deduplicate_gold_program(config, gold, rng):
+    ex = lambda g: SquaresSpec(config, SequentialProgram(g)).output_pattern
+
+    gold = gold[:]
+    safe = [False for _ in gold]
+    while not all(safe):
+        idx = rng.choice([i for i, s in enumerate(safe) if not s])
+        if np.all(ex(gold) == ex(gold[:idx] + gold[idx + 1 :])):
+            gold.pop(idx)
+            safe.pop(idx)
+        else:
+            safe[idx] = True
+    return gold
+
+
 def sample(config, rng):
     gold = SequentialProgram(
-        [
-            Square.sample(config, rng)
-            for _ in range(rng.choice(config.max_num_squares) + 1)
-        ]
+        deduplicate_gold_program(
+            config,
+            [
+                Square.sample(config, rng)
+                for _ in range(rng.choice(config.max_num_squares) + 1)
+            ],
+            rng,
+        )
     )
     spec = SquaresSpec(config, gold)
     return spec, gold
@@ -103,10 +122,10 @@ class StatePacker(torch.nn.Module):
 
 
 class SquaresPolicy(torch.nn.Module, Policy):
-    def __init__(self, config, *, channels=100, batch_size=32):
+    def __init__(self, config, *, channels=100, last_layer_channels=10, batch_size=32):
         super().__init__()
         self.packer = StatePacker(config, channels, layers=5)
-        self.pooler = torch.nn.Conv2d(channels, config.size * 10, 1)
+        self.pooler = torch.nn.Conv2d(channels, last_layer_channels, 1)
 
         self.autoregressor = AutoRegressor(
             list(
@@ -118,7 +137,7 @@ class SquaresPolicy(torch.nn.Module, Policy):
                     color=config.num_colors,
                 ).items()
             ),
-            hidden_size=config.size * 10,
+            hidden_size=config.size ** 2 * last_layer_channels,
             n_layers=2,
         )
         self._batch_size = batch_size
@@ -126,7 +145,7 @@ class SquaresPolicy(torch.nn.Module, Policy):
     def forward(self, states):
         packed = self.packer(states)
         packed = self.pooler(packed)
-        packed = packed.max(-1)[0].max(-1)[0]
+        packed = packed.reshape(packed.shape[0], -1)
         return AutoRegressDistribution(self.autoregressor, packed, Square)
 
     @property
