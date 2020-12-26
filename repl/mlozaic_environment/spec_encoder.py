@@ -70,7 +70,7 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
             encodings.embeddings.transpose(0, 1), hidden_states.transpose(0, 1)
         )
         result = self.out(result)
-        result, _ = result.max(0)
+        result = result[-1]
         return hidden_states, encodings.replace(result)
 
 
