@@ -73,6 +73,23 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
         result = result[-1]
         return hidden_states, encodings.replace(result)
 
+    def entire_sequence_forward(self, encodings, tokens):
+        tiled_tokens = encodings.tile(tokens.sequences)
+        source = encodings.embeddings.transpose(0, 1)
+        target = tiled_tokens.transpose(0, 1)
+        # NOTE: the mask for the key padding is inverted. From the docs:
+        #   "positions with the value of True will be ignored while the
+        #       position with the value of False will be unchanged"
+        result = self.decode_attn(
+            source,
+            target,
+            tgt_mask=self.decode_attn.generate_square_subsequent_mask(target.shape[0]),
+            tgt_key_padding_mask=~encodings.tile(tokens.mask),
+        )
+        result = result.transpose(0, 1)
+        result = self.out(result)
+        return encodings.replace(result)
+
 
 class MLozaicIOEncoder(nn.Module):
     """
