@@ -30,17 +30,11 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
         self, *, image_size=(100, 100, len(COLORS)), patch_size=5, embedding_size
     ):
         super().__init__()
-
-        self.w, self.h, self.c = image_size
-        self.p = patch_size
         self.e = embedding_size
+        self.io_encoder = MLozaicIOEncoder(
+            image_size=image_size, patch_size=patch_size, embedding_size=self.e
+        )
 
-        assert self.w % self.p == self.h % self.p == 0
-        assert self.e % 2 == 0
-
-        self.patch_embedding = nn.Linear(self.p ** 2 * self.c, self.e)
-        self.alphabet_embedding = nn.Embedding(1 + len(BACKWARDS_ALPHABET), self.e // 2)
-        self.positional_encoding = PositionalEncoding(self.e)
         self.encode_attn = nn.Transformer(
             self.e, num_encoder_layers=2, num_decoder_layers=0
         )
@@ -58,7 +52,7 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
             )
             flat_specs += spec.pairs
 
-        flat_specs = self._initial_embed(flat_specs)
+        flat_specs = self.io_encoder(flat_specs)
         flat_specs = flat_specs.transpose(0, 1)
         encoding = self.encode_attn(flat_specs, flat_specs)
         encoding = encoding.transpose(0, 1)
@@ -79,7 +73,26 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
         result, _ = result.max(0)
         return hidden_states, encodings.replace(result)
 
-    def _initial_embed(self, flat_specs):
+
+class MLozaicIOEncoder(nn.Module):
+    """
+    Performs the image, variable --> sequence part of the vision transformer.
+    """
+
+    def __init__(self, *, image_size, patch_size, embedding_size):
+        super().__init__()
+        self.w, self.h, self.c = image_size
+        self.p = patch_size
+        self.e = embedding_size
+
+        assert self.w % self.p == self.h % self.p == 0
+        assert self.e % 2 == 0
+
+        self.patch_embedding = nn.Linear(self.p ** 2 * self.c, self.e)
+        self.alphabet_embedding = nn.Embedding(1 + len(BACKWARDS_ALPHABET), self.e // 2)
+        self.positional_encoding = PositionalEncoding(self.e)
+
+    def forward(self, flat_specs):
         images = torch.tensor(
             [np.eye(self.c, dtype=np.float32)[spec.output] for spec in flat_specs]
         )
