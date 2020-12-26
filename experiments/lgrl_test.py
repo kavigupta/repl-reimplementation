@@ -21,7 +21,7 @@ def report_fn(idx, outputs):
 
 
 train_generic(
-    data=batched_dataset_iter(segment="train", batch_size=32),
+    data=batched_dataset_iter(segment="train", batch_size=2),
     train_fn=train_fn,
     report_fn=report_fn,
     architectures=[

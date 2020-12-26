@@ -8,7 +8,7 @@ from mlozaic.colors import COLORS
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
 from ..lgrl import SpecEncoder
-from ..utils import JaggedEmbeddings
+from ..utils import JaggedEmbeddings, PaddedSequence
 
 
 class MLozaicSpecEncoder(nn.Module, SpecEncoder):
@@ -53,10 +53,16 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
             flat_specs += spec.pairs
 
         flat_specs = self.io_encoder(flat_specs)
-        flat_specs = flat_specs.transpose(0, 1)
-        encoding = self.encode_attn(flat_specs, flat_specs)
+        src_tgt = flat_specs.sequences.transpose(0, 1)
+        # see entire_sequence_forward for note on mask
+        encoding = self.encode_attn(
+            src_tgt,
+            src_tgt,
+            src_key_padding_mask=~flat_specs.mask,
+            tgt_key_padding_mask=~flat_specs.mask,
+        )
         encoding = encoding.transpose(0, 1)
-        return JaggedEmbeddings(encoding, indices)
+        return JaggedEmbeddings(encoding, indices), flat_specs.mask
 
     def initial_hidden_state(self, encoded_io):
         n, _, e = encoded_io.embeddings.shape
@@ -74,6 +80,7 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
         return hidden_states, encodings.replace(result)
 
     def entire_sequence_forward(self, encodings, tokens):
+        encodings, encodings_mask = encodings
         tiled_tokens = encodings.tile(tokens.sequences)
         source = encodings.embeddings.transpose(0, 1)
         target = tiled_tokens.transpose(0, 1)
@@ -84,6 +91,7 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
             source,
             target,
             tgt_mask=self.decode_attn.generate_square_subsequent_mask(target.shape[0]),
+            src_key_padding_mask=~encodings_mask,
             tgt_key_padding_mask=~encodings.tile(tokens.mask),
         )
         result = result.transpose(0, 1)
@@ -126,16 +134,22 @@ class MLozaicIOEncoder(nn.Module):
         embedded_images = self.patch_embedding(images)
         max_num_variables = max(len(f.input) for f in flat_specs)
         variables = []
+        paddings = []
         for f in flat_specs:
             for k, v in f.input.items():
                 variables += [BACKWARDS_ALPHABET[k] + 1, BACKWARDS_ALPHABET[str(v)] + 1]
-            variables += [0, 0] * (max_num_variables - len(f.input))
+            padding_amount = max_num_variables - len(f.input)
+            variables += [0, 0] * padding_amount
+            paddings.append(padding_amount)
         variables = torch.tensor(variables)
         embedded_variables = self.alphabet_embedding(variables)
         embedded_variables = embedded_variables.reshape(n, max_num_variables, self.e)
         embedded_images = self.positional_encoding(embedded_images)
         embeddings = torch.cat([embedded_images, embedded_variables], dim=1)
-        return embeddings
+        mask = torch.ones(embeddings.shape[:-1], dtype=torch.bool)
+        for idx, padding in enumerate(paddings):
+            mask[idx, mask.shape[1] - padding :] = False
+        return PaddedSequence(embeddings, mask)
 
 
 class PositionalEncoding(nn.Module):
