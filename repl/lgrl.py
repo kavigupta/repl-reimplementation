@@ -32,8 +32,26 @@ class LGRL(nn.Module):
         self.embedding = nn.Embedding(alphabet_size, embedding_size)
         self.spec_encoder = spec_encoder
         self.decoder_out = nn.Linear(embedding_size, embedding_size)
-        self.syntax = nn.LSTMCell(input_size=embedding_size, hidden_size=embedding_size)
+        self.syntax = nn.LSTM(input_size=embedding_size, hidden_size=embedding_size)
         self.syntax_out = nn.Linear(embedding_size, alphabet_size)
+
+    def entire_sequence_forward(self, specs, programs, normalize_logits=True):
+        inputs = PaddedSequence.of([[0] + prog for prog in programs], dtype=torch.long)
+        outputs = PaddedSequence.of([prog + [1] for prog in programs], dtype=torch.long)
+
+        embedded_inputs = inputs.map(self.embedding)
+        spec_embedding = self.spec_encoder.encode(specs)
+        decoder_out = self.spec_encoder.entire_sequence_forward(
+            spec_embedding, embedded_inputs
+        )
+        decoder_out = decoder_out.max_pool()
+        syntax_out, _ = self.syntax(embedded_inputs.sequences.transpose(0, 1))
+        syntax_out = syntax_out.transpose(0, 1)
+        syntax_out = self.syntax_out(syntax_out)
+        prediction_vector = decoder_out - torch.exp(syntax_out)
+        if normalize_logits:
+            prediction_vector = prediction_vector.log_softmax(-1)
+        return prediction_vector, outputs
 
     def forward(self, inference_state, choices, normalize_logits=True):
         embedded_tokens = self.embedding(choices)
@@ -42,7 +60,7 @@ class LGRL(nn.Module):
             inference_state.spec_embedding,
             embedded_tokens,
         )
-        new_syntax_state = self.syntax(embedded_tokens)
+        _, new_syntax_state = self.syntax(embedded_tokens, inference_state.syntax_state)
 
         decoder_out = decoder_out.max_pool()
         syntax_out = self.syntax_out(new_syntax_state[0])
@@ -71,17 +89,10 @@ class LGRL(nn.Module):
 
     def loss(self, specs, programs):
         # add in the end token and pad
-        programs = PaddedSequence.of(
-            [prog + [1] for prog in programs], dtype=torch.long
+        predictions, outputs = self.entire_sequence_forward(
+            specs, programs, normalize_logits=False
         )
-        pred, state = self.begin_inference(specs, normalize_logits=False)
-        losses = []
-        for t in range(programs.L):
-            actual = programs.sequences[:, t]
-            losses.append(self._xe(pred, actual, programs.mask[:, t]))
-            if t < programs.L - 1:
-                pred, state = state.step(actual, normalize_logits=False)
-        return torch.sum(torch.stack(losses))
+        return self._xe(predictions, outputs.sequences, outputs.mask)
 
     def _xe(self, pred, actual, mask):
         return F.cross_entropy(pred[mask], actual[mask])

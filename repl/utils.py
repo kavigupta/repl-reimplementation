@@ -106,3 +106,6 @@ class PaddedSequence:
     @property
     def L(self):
         return self.mask.shape[1]
+
+    def map(self, f):
+        return PaddedSequence(f(self.sequences), self.mask)
