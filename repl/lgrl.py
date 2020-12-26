@@ -32,7 +32,7 @@ class LGRL(nn.Module):
         self.embedding = nn.Embedding(alphabet_size, embedding_size)
         self.spec_encoder = spec_encoder
         self.decoder_out = nn.Linear(embedding_size, embedding_size)
-        self.syntax = nn.LSTMCell(input_size=embedding_size, hidden_size=embedding_size)
+        self.syntax = nn.LSTM(input_size=embedding_size, hidden_size=embedding_size)
         self.syntax_out = nn.Linear(embedding_size, alphabet_size)
 
     def forward(self, inference_state, choices, normalize_logits=True):
@@ -42,7 +42,7 @@ class LGRL(nn.Module):
             inference_state.spec_embedding,
             embedded_tokens,
         )
-        new_syntax_state = self.syntax(embedded_tokens)
+        _, new_syntax_state = self.syntax(embedded_tokens, inference_state.syntax_state)
 
         decoder_out = decoder_out.max_pool()
         syntax_out = self.syntax_out(new_syntax_state[0])
