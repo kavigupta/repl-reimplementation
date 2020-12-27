@@ -1,3 +1,4 @@
+import os
 import shelve
 
 from more_itertools import chunked
@@ -10,8 +11,10 @@ from mlozaic.renderer import render
 from repl.mlozaic_environment.spec import MLozaicSpecification, MLozaicPair
 
 
-def standard_dataset():
-    return shelve.open("data/mlozaic_standard/data", "c")
+def standard_dataset(path="data/mlozaic_standard"):
+    if not os.path.exists(path):
+        raise RuntimeError(f"Run 'standard_dataset {path} 200000' to generate the data")
+    return shelve.open(os.path.join(path, "data"), "c")
 
 
 def batched_dataset_iter(*args, batch_size, **kwargs):
