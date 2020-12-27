@@ -57,28 +57,17 @@ class MLozaicSpecEncoder(AttentionalSpecEncoder):
         return JaggedEmbeddings(encoding, indices), flat_specs.mask
 
 
-class MLozaicIOEncoder(nn.Module):
-    """
-    Performs the image, variable --> sequence part of the vision transformer.
-    """
-
-    def __init__(self, *, image_size, patch_size, embedding_size):
+class PatchEncoder(nn.Module):
+    def __init__(self, image_size, patch_size, embedding_size):
         super().__init__()
         self.w, self.h, self.c = image_size
         self.p = patch_size
         self.e = embedding_size
-
         assert self.w % self.p == self.h % self.p == 0
-        assert self.e % 2 == 0
-
         self.patch_embedding = nn.Linear(self.p ** 2 * self.c, self.e)
-        self.alphabet_embedding = nn.Embedding(1 + len(BACKWARDS_ALPHABET), self.e // 2)
         self.positional_encoding = PositionalEncoding(self.e)
 
-    def forward(self, flat_specs):
-        images = torch.tensor(
-            [np.eye(self.c, dtype=np.float32)[spec.output] for spec in flat_specs]
-        )
+    def forward(self, images):
         n, w, h, c = images.shape
         p = self.p
         assert w == self.w and h == self.h and c == self.c
@@ -89,7 +78,31 @@ class MLozaicIOEncoder(nn.Module):
         q = w // p * h // p
         images = images.reshape(n, q, p * p * c)
         # embedded_images : N x Q x E
-        embedded_images = self.patch_embedding(images)
+        images = self.patch_embedding(images)
+        images = self.positional_encoding(images)
+        return images
+
+
+class MLozaicIOEncoder(nn.Module):
+    """
+    Performs the image, variable --> sequence part of the vision transformer.
+    """
+
+    def __init__(self, *, image_size, patch_size, embedding_size):
+        super().__init__()
+        self.e = embedding_size
+
+        assert self.e % 2 == 0
+
+        self.c = image_size[-1]
+        self.alphabet_embedding = nn.Embedding(1 + len(BACKWARDS_ALPHABET), self.e // 2)
+        self.patch_encoder = PatchEncoder(image_size, patch_size, embedding_size)
+
+    def forward(self, flat_specs):
+        images = torch.tensor(
+            [np.eye(self.c, dtype=np.float32)[spec.output] for spec in flat_specs]
+        )
+        embedded_images = self.patch_encoder(images)
         max_num_variables = max(len(f.input) for f in flat_specs)
         variables = []
         paddings = []
@@ -101,8 +114,9 @@ class MLozaicIOEncoder(nn.Module):
             paddings.append(padding_amount)
         variables = torch.tensor(variables)
         embedded_variables = self.alphabet_embedding(variables)
-        embedded_variables = embedded_variables.reshape(n, max_num_variables, self.e)
-        embedded_images = self.positional_encoding(embedded_images)
+        embedded_variables = embedded_variables.reshape(
+            images.shape[0], max_num_variables, self.e
+        )
         embeddings = torch.cat([embedded_images, embedded_variables], dim=1)
         mask = torch.ones(embeddings.shape[:-1], dtype=torch.bool)
         for idx, padding in enumerate(paddings):
