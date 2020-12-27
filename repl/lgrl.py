@@ -138,16 +138,16 @@ class SpecEncoder(ABC):
 
 
 class AttentionalSpecEncoder(nn.Module, SpecEncoder):
-    def __init__(self, embedding_size):
+    def __init__(self, embedding_size, *, encoder_layers=2, decoder_layers=2):
         super().__init__()
 
         self.e = embedding_size
 
         self.encode_attn = nn.Transformer(
-            self.e, num_encoder_layers=2, num_decoder_layers=0
+            self.e, num_encoder_layers=encoder_layers, num_decoder_layers=1
         )
         self.decode_attn = nn.Transformer(
-            self.e, num_encoder_layers=0, num_decoder_layers=2
+            self.e, num_encoder_layers=1, num_decoder_layers=decoder_layers
         )
         self.out = nn.Linear(self.e, 2 + len(BACKWARDS_ALPHABET))
 
