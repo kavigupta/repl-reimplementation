@@ -119,6 +119,55 @@ class SpecEncoder(ABC):
         pass
 
 
+class AttentionalSpecEncoder(nn.Module, SpecEncoder):
+    def __init__(self, embedding_size):
+        super().__init__()
+
+        self.e = embedding_size
+
+        self.encode_attn = nn.Transformer(
+            self.e, num_encoder_layers=2, num_decoder_layers=0
+        )
+        self.decode_attn = nn.Transformer(
+            self.e, num_encoder_layers=0, num_decoder_layers=2
+        )
+        self.out = nn.Linear(self.e, 2 + len(BACKWARDS_ALPHABET))
+
+    def initial_hidden_state(self, encoded_io):
+        n, _, e = encoded_io.embeddings.shape
+        return torch.zeros(n, 0, e)
+
+    def evolve_hidden_state(self, hidden_states, encodings, tokens):
+        hidden_states = torch.cat(
+            [encodings.tile(tokens).unsqueeze(1), hidden_states], axis=1
+        )
+        result = self.decode_attn(
+            encodings.embeddings.transpose(0, 1), hidden_states.transpose(0, 1)
+        )
+        result = self.out(result)
+        result = result[-1]
+        return hidden_states, encodings.replace(result)
+
+    def entire_sequence_forward(self, encodings, tokens):
+        encodings, encodings_mask = encodings
+        tiled_tokens = encodings.tile(tokens.sequences)
+        source = encodings.embeddings.transpose(0, 1)
+        target = tiled_tokens.transpose(0, 1)
+        # NOTE: the mask for the key padding is inverted. From the docs:
+        #   "positions with the value of True will be ignored while the
+        #       position with the value of False will be unchanged"
+        result = self.decode_attn(
+            source,
+            target,
+            tgt_mask=self.decode_attn.generate_square_subsequent_mask(target.shape[0]),
+            src_key_padding_mask=~encodings_mask,
+            tgt_key_padding_mask=~encodings.tile(tokens.mask),
+        )
+        result = result.transpose(0, 1)
+        result = self.out(result)
+        return encodings.replace(result)
+
+
 @attr.s
 class LGRLInferenceState:
     lgrl = attr.ib()

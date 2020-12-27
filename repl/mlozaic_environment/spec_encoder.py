@@ -7,11 +7,11 @@ import torch.nn as nn
 from mlozaic.colors import COLORS
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
-from ..lgrl import SpecEncoder
+from ..lgrl import AttentionalSpecEncoder
 from ..utils import JaggedEmbeddings, PaddedSequence
 
 
-class MLozaicSpecEncoder(nn.Module, SpecEncoder):
+class MLozaicSpecEncoder(AttentionalSpecEncoder):
     """
     Rough implementation of a vision transformer: https://arxiv.org/pdf/2010.11929.pdf
 
@@ -29,19 +29,11 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
     def __init__(
         self, *, image_size=(100, 100, len(COLORS)), patch_size=5, embedding_size
     ):
-        super().__init__()
+        super().__init__(embedding_size)
         self.e = embedding_size
         self.io_encoder = MLozaicIOEncoder(
             image_size=image_size, patch_size=patch_size, embedding_size=self.e
         )
-
-        self.encode_attn = nn.Transformer(
-            self.e, num_encoder_layers=2, num_decoder_layers=0
-        )
-        self.decode_attn = nn.Transformer(
-            self.e, num_encoder_layers=0, num_decoder_layers=2
-        )
-        self.out = nn.Linear(self.e, 2 + len(BACKWARDS_ALPHABET))
 
     def encode(self, specifications):
         flat_specs = []
@@ -63,40 +55,6 @@ class MLozaicSpecEncoder(nn.Module, SpecEncoder):
         )
         encoding = encoding.transpose(0, 1)
         return JaggedEmbeddings(encoding, indices), flat_specs.mask
-
-    def initial_hidden_state(self, encoded_io):
-        n, _, e = encoded_io.embeddings.shape
-        return torch.zeros(n, 0, e)
-
-    def evolve_hidden_state(self, hidden_states, encodings, tokens):
-        hidden_states = torch.cat(
-            [encodings.tile(tokens).unsqueeze(1), hidden_states], axis=1
-        )
-        result = self.decode_attn(
-            encodings.embeddings.transpose(0, 1), hidden_states.transpose(0, 1)
-        )
-        result = self.out(result)
-        result = result[-1]
-        return hidden_states, encodings.replace(result)
-
-    def entire_sequence_forward(self, encodings, tokens):
-        encodings, encodings_mask = encodings
-        tiled_tokens = encodings.tile(tokens.sequences)
-        source = encodings.embeddings.transpose(0, 1)
-        target = tiled_tokens.transpose(0, 1)
-        # NOTE: the mask for the key padding is inverted. From the docs:
-        #   "positions with the value of True will be ignored while the
-        #       position with the value of False will be unchanged"
-        result = self.decode_attn(
-            source,
-            target,
-            tgt_mask=self.decode_attn.generate_square_subsequent_mask(target.shape[0]),
-            src_key_padding_mask=~encodings_mask,
-            tgt_key_padding_mask=~encodings.tile(tokens.mask),
-        )
-        result = result.transpose(0, 1)
-        result = self.out(result)
-        return encodings.replace(result)
 
 
 class MLozaicIOEncoder(nn.Module):
