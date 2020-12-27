@@ -8,7 +8,8 @@ import numpy as np
 from mlozaic.grammar import BACKWARDS_ALPHABET
 from mlozaic.renderer import render
 
-from repl.mlozaic_environment.spec import MLozaicSpecification, MLozaicPair
+from .spec import MLozaicSpecification, MLozaicPair
+from ..utils import split_indices
 
 
 def standard_dataset(path="data/mlozaic_standard"):
@@ -33,7 +34,7 @@ def dataset_iter(segment, split=0.1, dataset=standard_dataset, seed=0):
         split: the percentage of the data to place in the test pool
     """
     dataset = dataset()
-    indices = get_indices(segment, split, len(dataset))
+    indices = split_indices(segment, split, len(dataset))
     np.random.RandomState(seed).shuffle(indices)
     for i in indices:
         program, inputs = dataset[str(i)]
@@ -46,14 +47,3 @@ def dataset_iter(segment, split=0.1, dataset=standard_dataset, seed=0):
         ]
         program = [BACKWARDS_ALPHABET[tok] + 2 for tok in program.code]
         yield MLozaicSpecification(spec), program
-
-
-def get_indices(segment, split, dataset_size):
-    test_indices = np.random.RandomState(0).rand(dataset_size) < split
-    if segment == "test":
-        indices_to_use = test_indices
-    elif segment == "train":
-        indices_to_use = ~test_indices
-    else:
-        raise RuntimeError("invalid segment, must be train or test")
-    return np.arange(dataset_size, dtype=np.int)[indices_to_use]

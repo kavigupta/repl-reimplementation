@@ -109,3 +109,14 @@ class PaddedSequence:
 
     def map(self, f):
         return PaddedSequence(f(self.sequences), self.mask)
+
+
+def split_indices(segment, split, dataset_size):
+    test_indices = np.random.RandomState(0).rand(dataset_size) < split
+    if segment == "test":
+        indices_to_use = test_indices
+    elif segment == "train":
+        indices_to_use = ~test_indices
+    else:
+        raise RuntimeError("invalid segment, must be train or test")
+    return np.arange(dataset_size, dtype=np.int)[indices_to_use]
