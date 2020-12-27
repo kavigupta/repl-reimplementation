@@ -118,6 +118,24 @@ class SpecEncoder(ABC):
         """
         pass
 
+    @abstractmethod
+    def entire_sequence_forward(self, encodings, tokens):
+        """
+        This could be implemented in terms of initial_hidden_state/evolve_hidden_state
+        with a loop but can often be implemented more efficiently in a single pass.
+
+        This can really only be used for training.
+
+        Arguments
+            encodings: as produced by self.encode
+             tokens: a PaddedSequence object that represents the original sequence
+
+        Output
+            a PaddedSequence object representing the inferences on every element in
+                the sequence.
+        """
+        pass
+
 
 class AttentionalSpecEncoder(nn.Module, SpecEncoder):
     def __init__(self, embedding_size):
