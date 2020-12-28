@@ -2,11 +2,10 @@ import os
 import pickle
 import struct
 
-from more_itertools import chunked
-
 import numpy as np
 
 from ..spec import Specification, Pair
+from ..dataset import Dataset
 
 GRID_SIZE = (15, 18, 18)
 
@@ -26,15 +25,6 @@ def check_data(path):
         raise RuntimeError(error_message)
 
 
-def standard_dataset(segment, *, path="data/karel_standard"):
-    check_data(path)
-    root = os.path.join(path, "karel")
-    path_prefix = os.path.join(
-        root, {"train": "train", "test": "val"}[segment] + ".pkl"
-    )
-    return KarelData(path_prefix)
-
-
 def read_vocab(root="data/karel_standard"):
     check_data(root)
     with open(os.path.join(root, "karel", "word.vocab")) as f:
@@ -42,7 +32,7 @@ def read_vocab(root="data/karel_standard"):
     return {k: int(v) for k, v in vocab}
 
 
-class KarelData:
+class KarelDataFile:
     def __init__(self, path_prefix):
         self.indices = read_index(path_prefix + ".index")
         self.obj_file = open(path_prefix, "rb")
@@ -91,21 +81,25 @@ def read_index(filename):
     return index
 
 
-def batched_dataset_iter(*args, batch_size, **kwargs):
-    for batch in chunked(dataset_iter(*args, **kwargs), batch_size):
-        yield tuple(zip(*batch))
+class KarelDataset(Dataset):
+    def __init__(self, segment, path="data/karel_standard"):
+        super().__init__(segment)
+        check_data(path)
+        root = os.path.join(path, "karel")
+        self.path_prefix = os.path.join(
+            root, {"train": "train", "test": "val"}[segment] + ".pkl"
+        )
 
+    def dataset(self, seed):
+        """
+        Iterate through the dataset yielding spec, program pairs.
 
-def dataset_iter(segment, dataset=standard_dataset, seed=0):
-    """
-    Iterate through the dataset yielding spec, program pairs.
-
-    Arguments:
-        segment: the segment to use, must be 'train' or 'test'
-    """
-    ba = read_vocab()
-    dataset = dataset(segment)
-    dataset.shuffle(seed)
-    for spec, program in dataset:
-        program = [ba[tok] + 2 for tok in program]
-        yield spec, program
+        Arguments:
+            segment: the segment to use, must be 'train' or 'test'
+        """
+        ba = read_vocab()
+        dataset = KarelDataFile(self.path_prefix)
+        dataset.shuffle(seed)
+        for spec, program in dataset:
+            program = [ba[tok] + 2 for tok in program]
+            yield spec, program

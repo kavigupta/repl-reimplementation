@@ -111,3 +111,17 @@ def finetune(policy, value, sampler, rng, n=10000, *, model_path, **kwargs):
         paths=[model_path + "/pf", model_path + "/vf"],
         save_frequency=1,
     )
+
+
+def supervised_training(optimizer, **kwargs):
+    def train_fn(model, idx, chunk):
+        opt = optimizer(model.parameters())
+        loss = model.loss(*chunk)
+        loss.backward()
+        opt.step()
+        return loss.item()
+
+    def report_fn(idx, outputs):
+        return f"Loss: {np.mean(outputs)}"
+
+    return train_generic(report_fn=report_fn, train_fn=train_fn, **kwargs)
