@@ -19,6 +19,7 @@ def train_fn(model, idx, chunk):
 def report_fn(idx, outputs):
     return f"Loss: {np.mean(outputs)}"
 
+
 def data():
     for seed in range(10):
         yield from batched_dataset_iter(segment="train", batch_size=32, seed=seed)

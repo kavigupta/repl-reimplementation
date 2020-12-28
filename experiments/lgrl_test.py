@@ -24,6 +24,7 @@ def data():
     for seed in range(10):
         yield from batched_dataset_iter(segment="train", batch_size=32, seed=seed)
 
+
 embedding_size = 64
 
 train_generic(
@@ -31,7 +32,10 @@ train_generic(
     train_fn=train_fn,
     report_fn=report_fn,
     architectures=[
-        lambda: LGRL(MLozaicSpecEncoder(embedding_size=embedding_size), embedding_size=embedding_size)
+        lambda: LGRL(
+            MLozaicSpecEncoder(embedding_size=embedding_size),
+            embedding_size=embedding_size,
+        )
     ],
     paths=["logdirs/basic-lgrl"],
     save_frequency=20,
