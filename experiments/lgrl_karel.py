@@ -9,7 +9,7 @@ from repl.train import train_generic
 
 
 def train_fn(model, idx, chunk):
-    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    opt = torch.optim.Adam(model.parameters(), lr=1e-4)
     loss = model.loss(*chunk)
     loss.backward()
     opt.step()
@@ -26,12 +26,12 @@ def data():
 
 
 train_generic(
-    data=batched_dataset_iter(segment="train", batch_size=2),
+    data=data(),
     train_fn=train_fn,
     report_fn=report_fn,
     architectures=[
         lambda: LGRL(KarelSpecEncoder(embedding_size=64), embedding_size=64)
     ],
-    paths=["logdirs/lgrl-karel"],
+    paths=["logdirs/lgrl-karel-1e-4"],
     save_frequency=20,
 )
