@@ -26,7 +26,7 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
     def __init__(self, *, image_size=GRID_SIZE, embedding_size):
         super().__init__(embedding_size)
         self.e = embedding_size
-        self.encoder = KarelTaskEncoder((image_size[0] * 2, *image_size[1:]))
+        self.encoder = KarelTaskEncoder((image_size[0], *image_size[1:]))
 
     def encode(self, specifications):
         flat_specs = []
@@ -91,6 +91,7 @@ class KarelTaskEncoder(nn.Module):
         )
 
     def forward(self, input_grid, output_grid):
+        assert self.image_size == input_grid.shape[-3:]
         batch_dims = input_grid.shape[:-3]
         input_grid = input_grid.contiguous().view(-1, *self.image_size)
         output_grid = output_grid.contiguous().view(-1, *self.image_size)
