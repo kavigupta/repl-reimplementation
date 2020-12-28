@@ -19,6 +19,10 @@ def train_fn(model, idx, chunk):
 def report_fn(idx, outputs):
     return f"Loss: {np.mean(outputs)}"
 
+def data():
+    for seed in range(10):
+        yield from batched_dataset_iter(segment="train", batch_size=32, seed=seed)
+
 
 train_generic(
     data=batched_dataset_iter(segment="train", batch_size=2),
@@ -28,5 +32,5 @@ train_generic(
         lambda: LGRL(KarelSpecEncoder(embedding_size=64), embedding_size=64)
     ],
     paths=["logdirs/lgrl-karel"],
-    save_frequency=1,
+    save_frequency=20,
 )
