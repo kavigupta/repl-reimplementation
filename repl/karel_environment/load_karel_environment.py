@@ -11,7 +11,7 @@ from ..spec import Specification, Pair
 GRID_SIZE = (15, 18, 18)
 
 
-def standard_dataset(segment, *, path="data/karel_standard"):
+def check_data(path):
     if not os.path.exists(path):
         error_message = f"""
         Data not found. Run
@@ -24,6 +24,10 @@ def standard_dataset(segment, *, path="data/karel_standard"):
 
         """
         raise RuntimeError(error_message)
+
+
+def standard_dataset(segment, *, path="data/karel_standard"):
+    check_data(path)
     root = os.path.join(path, "karel")
     path_prefix = os.path.join(
         root, {"train": "train", "test": "val"}[segment] + ".pkl"
@@ -32,6 +36,7 @@ def standard_dataset(segment, *, path="data/karel_standard"):
 
 
 def read_vocab(root="data/karel_standard"):
+    check_data(root)
     with open(os.path.join(root, "karel", "word.vocab")) as f:
         vocab = [line.split() for line in f]
     return {k: int(v) for k, v in vocab}
