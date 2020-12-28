@@ -8,7 +8,7 @@ import numpy as np
 from mlozaic.grammar import BACKWARDS_ALPHABET
 from mlozaic.renderer import render
 
-from .spec import MLozaicSpecification, MLozaicPair
+from ..spec import Specification, Pair
 from ..utils import split_indices
 
 
@@ -40,10 +40,10 @@ def dataset_iter(segment, split=0.1, dataset=standard_dataset, seed=0):
         program, inputs = dataset[str(i)]
         inputs = inputs[:-1]
         spec = [
-            MLozaicPair(
+            Pair(
                 inp, render(program.evaluate(inp), size=(50, 50), stretch=2, rgb=False)
             )
             for inp in inputs
         ]
         program = [BACKWARDS_ALPHABET[tok] + 2 for tok in program.code]
-        yield MLozaicSpecification(spec), program
+        yield Specification(spec), program

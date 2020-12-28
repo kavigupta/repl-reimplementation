@@ -2,11 +2,11 @@ import attr
 
 
 @attr.s
-class MLozaicSpecification:
+class Specification:
     pairs = attr.ib()
 
 
 @attr.s
-class MLozaicPair:
+class Pair:
     input = attr.ib()
     output = attr.ib()
