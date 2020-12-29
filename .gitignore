@@ -1,4 +1,7 @@
-*.pyc
+data
 logdirs
+
+# python
+*.pyc
 .ipynb_checkpoints
 Untitled.ipynb
