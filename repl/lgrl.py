@@ -53,18 +53,23 @@ class LGRL(nn.Module):
             prediction_vector = prediction_vector.log_softmax(-1)
         return prediction_vector, outputs
 
-    def forward(self, inference_state, choices, normalize_logits=True):
-        embedded_tokens = self.embedding(choices)
+    def forward(self, inference_state, choice, normalize_logits=True):
+        if choice == 1:
+            return None, None  # </s> token reached
+        embedded_tokens = self.embedding(torch.tensor([choice]))
         new_decoder_state, decoder_out = self.spec_encoder.evolve_hidden_state(
             inference_state.decoder_state,
             inference_state.spec_embedding,
             embedded_tokens,
         )
-        _, new_syntax_state = self.syntax(embedded_tokens, inference_state.syntax_state)
+        out, new_syntax_state = self.syntax(
+            embedded_tokens.unsqueeze(0), inference_state.syntax_state
+        )
 
         decoder_out = decoder_out.max_pool()
-        syntax_out = self.syntax_out(new_syntax_state[0])
+        syntax_out = self.syntax_out(out)
         prediction_vector = decoder_out - torch.exp(syntax_out)
+        prediction_vector = prediction_vector.squeeze(0)[-1]
         if normalize_logits:
             prediction_vector = prediction_vector.log_softmax(-1)
         new_state = LGRLInferenceState(
@@ -73,19 +78,19 @@ class LGRL(nn.Module):
             decoder_state=new_decoder_state,
             syntax_state=new_syntax_state,
         )
-        return prediction_vector, new_state
+        return new_state, prediction_vector
 
-    def begin_inference(self, specs, **kwargs):
-        spec_embedding = self.spec_encoder.encode(specs)
+    def begin_inference(self, spec, **kwargs):
+        spec_embedding = self.spec_encoder.encode([spec])
         decoder_state = self.spec_encoder.initial_hidden_state(spec_embedding)
-        syntax_state = torch.zeros(2, len(specs), self.embedding_size)
+        syntax_state = [torch.zeros(1, 1, self.embedding_size) for _ in range(2)]
         state = LGRLInferenceState(
             lgrl=self,
             spec_embedding=spec_embedding,
             decoder_state=decoder_state,
             syntax_state=syntax_state,
         )
-        return state.step(torch.zeros(len(specs), dtype=torch.long), **kwargs)
+        return state.step(0, **kwargs)
 
     def loss(self, specs, programs):
         # add in the end token and pad
@@ -152,19 +157,20 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         self.out = nn.Linear(self.e, 2 + len(BACKWARDS_ALPHABET))
 
     def initial_hidden_state(self, encoded_io):
-        n, _, e = encoded_io.embeddings.shape
-        return torch.zeros(n, 0, e)
+        n = len(encoded_io[0].indices_for_each)
+        return torch.zeros(n, 0, self.e)
 
     def evolve_hidden_state(self, hidden_states, encodings, tokens):
-        hidden_states = torch.cat(
-            [encodings.tile(tokens).unsqueeze(1), hidden_states], axis=1
+        hidden_states = torch.cat([tokens.unsqueeze(1), hidden_states], axis=1)
+        return hidden_states, self.entire_sequence_forward(
+            encodings,
+            PaddedSequence(
+                hidden_states,
+                torch.ones(
+                    (hidden_states.shape[0], hidden_states.shape[1]), dtype=torch.bool
+                ),
+            ),
         )
-        result = self.decode_attn(
-            encodings.embeddings.transpose(0, 1), hidden_states.transpose(0, 1)
-        )
-        result = self.out(result)
-        result = result[-1]
-        return hidden_states, encodings.replace(result)
 
     def entire_sequence_forward(self, encodings, tokens):
         encodings, encodings_mask = encodings
