@@ -2,6 +2,26 @@ import numpy as np
 import torch
 
 
+@attr.s
+class GenerationPhase:
+    # whether it can be considered a candidate, e.g., a full executable program
+    is_candidate = attr.ib()
+    # whether or not it can have more tokens added to it
+    extendable = attr.ib()
+
+    @classmethod
+    def sequential_program_categorizer(cls, program):
+        return cls(is_candidate=True, extendable=True)
+
+    @classmethod
+    def loop_program_categorizer(cls, program):
+        # assumes 1 is the </s> token
+        if program[-1] == 1:
+            return cls(is_candidate=True, extendable=False)
+        else:
+            return cls(is_candidate=False, extendable=True)
+
+
 def particle_filter(
     transition_model,
     observation_model,
@@ -9,6 +29,7 @@ def particle_filter(
     prior,
     objective,
     *,
+    categorizer=GenerationPhase.sequential_program_categorizer,
     rng,
     n_particles
 ):
@@ -22,6 +43,8 @@ def particle_filter(
 
         observations: a list of observations [y_t] to be made
 
+        phase_of: a function that takes in a sequence and categorizes it into a Phase
+
         prior: two lists [x_0] and [w] of elements and their weights.
 
         objective: a function that takes in an x and outputs a number. The particle
@@ -30,12 +53,13 @@ def particle_filter(
     Returns
         the best particle, as judged by objective.
     """
-    best_x = (-float("inf"), None)
+    candidates = []
 
     x_vals, weights = prior
     weights = torch.tensor(weights)
     for obs in observations:
-        best_x = max([best_x] + [(objective(x), x) for x in x_vals], key=lambda x: x[0])
+        candidates += [x for x in x_vals if categorizer(x).is_candidate]
+        x_vals = [x for x in x_vals if categorizer(x).is_extendable]
 
         obs_weights = observation_model(x_vals, obs)
         if obs_weights is not None:
@@ -51,8 +75,7 @@ def particle_filter(
         x_vals, weights = transition_model(x_vals, rng)
         weights = torch.tensor(weights)
 
-    best_x = max([best_x] + [(objective(x), x) for x in x_vals], key=lambda x: x[0])
-    return best_x[1]
+    return sorted(candidates, key=objective)
 
 
 def repl_particle_filter(
@@ -93,4 +116,4 @@ def repl_particle_filter(
         objective=objective,
         rng=rng,
         n_particles=n_particles,
-    )
+    )[0]
