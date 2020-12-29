@@ -153,7 +153,6 @@ def multi_beam_search(
                 next_inference_state,
                 next_choices,
             ) = candidate.hypothesis.inference_state.step(candidate.choice)
-            assert len(next_choices.shape) == 1
             if next_choices is None:
                 finished.append(
                     Hypothesis(
@@ -165,6 +164,7 @@ def multi_beam_search(
                     )
                 )
             else:
+                assert len(next_choices.shape) == 1
                 beam[prefix].append(
                     Hypothesis(
                         next_inference_state,
