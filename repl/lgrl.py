@@ -53,10 +53,23 @@ class LGRL(nn.Module):
             prediction_vector = prediction_vector.log_softmax(-1)
         return prediction_vector, outputs
 
-    def forward(self, inference_state, choice, normalize_logits=True):
-        if choice == 1:
-            return None, None  # </s> token reached
-        embedded_tokens = self.embedding(torch.tensor([choice]))
+    def resample_state(self, state, new_indices):
+        """
+        Use the updated indices for the state
+        """
+        new_spec_embedding, new_decoder_state = self.spec_encoder.resample_state(
+            state.spec_embedding, state.decoder_state, new_indices
+        )
+        new_syntax_state = [s[:, new_indices] for s in state.syntax_state]
+        return LGRLInferenceState(
+            lgrl=state.lgrl,
+            spec_embedding=new_spec_embedding,
+            decoder_state=new_decoder_state,
+            syntax_state=new_syntax_state,
+        )
+
+    def forward(self, inference_state, choices, normalize_logits=True):
+        embedded_tokens = self.embedding(choices)
         new_decoder_state, decoder_out = self.spec_encoder.evolve_hidden_state(
             inference_state.decoder_state,
             inference_state.spec_embedding,
@@ -65,11 +78,14 @@ class LGRL(nn.Module):
         out, new_syntax_state = self.syntax(
             embedded_tokens.unsqueeze(0), inference_state.syntax_state
         )
+        assert out.shape[0] == 1
+        out = out.squeeze(0)
 
         decoder_out = decoder_out.max_pool()
+        decoder_out = decoder_out[:, -1, :]
         syntax_out = self.syntax_out(out)
+        print(decoder_out.shape, syntax_out.shape)
         prediction_vector = decoder_out - torch.exp(syntax_out)
-        prediction_vector = prediction_vector.squeeze(0)[-1]
         if normalize_logits:
             prediction_vector = prediction_vector.log_softmax(-1)
         new_state = LGRLInferenceState(
@@ -80,17 +96,19 @@ class LGRL(nn.Module):
         )
         return new_state, prediction_vector
 
-    def begin_inference(self, spec, **kwargs):
-        spec_embedding = self.spec_encoder.encode([spec])
+    def begin_inference(self, specs, **kwargs):
+        spec_embedding = self.spec_encoder.encode(specs)
         decoder_state = self.spec_encoder.initial_hidden_state(spec_embedding)
-        syntax_state = [torch.zeros(1, 1, self.embedding_size) for _ in range(2)]
+        syntax_state = [
+            torch.zeros(1, len(specs), self.embedding_size) for _ in range(2)
+        ]
         state = LGRLInferenceState(
             lgrl=self,
             spec_embedding=spec_embedding,
             decoder_state=decoder_state,
             syntax_state=syntax_state,
         )
-        return state.step(0, **kwargs)
+        return state.step(torch.zeros(len(specs), dtype=torch.long), **kwargs)
 
     def loss(self, specs, programs):
         # add in the end token and pad
@@ -138,6 +156,13 @@ class SpecEncoder(ABC):
         Output
             a PaddedSequence object representing the inferences on every element in
                 the sequence.
+        """
+        pass
+
+    @abstractmethod
+    def resample_state(self, spec_embedding, decoder_state, new_indices):
+        """
+        Resample the spec embedding and the decoder state with the given indices
         """
         pass
 
@@ -191,6 +216,17 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         result = self.out(result)
         return encodings.replace(result)
 
+    def resample_state(self, spec_embedding, decoder_state, new_indices):
+        """
+        Resample the spec embedding and the decoder state with the given indices
+        """
+        emb, mask = spec_embedding
+        mask = JaggedEmbeddings(mask, emb.indices_for_each)[new_indices].embeddings
+        emb = emb[new_indices]
+        spec_embedding = emb, mask
+        decoder_state = decoder_state[new_indices]
+        return spec_embedding, decoder_state
+
 
 @attr.s
 class LGRLInferenceState:
@@ -201,3 +237,6 @@ class LGRLInferenceState:
 
     def step(self, choices, **kwargs):
         return self.lgrl.forward(self, choices, **kwargs)
+
+    def resample(self, new_indices):
+        return self.lgrl.resample_state(self, new_indices)
