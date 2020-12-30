@@ -85,6 +85,17 @@ class JaggedEmbeddings:
             [self.embeddings[idxs].max(0)[0] for idxs in self.indices_for_each]
         )
 
+    def __getitem__(self, indices):
+        new_indices = []
+        gather = []
+        for i in indices:
+            each = self.indices_for_each[i]
+            new_indices.append(list(range(len(gather), len(gather) + len(each))))
+            gather.extend(each)
+        return JaggedEmbeddings(
+            embeddings=self.embeddings[gather], indices_for_each=new_indices
+        )
+
 
 @attr.s
 class PaddedSequence:
