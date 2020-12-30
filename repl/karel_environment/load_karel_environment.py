@@ -89,6 +89,8 @@ class KarelDataset(Dataset):
         self.path_prefix = os.path.join(
             root, {"train": "train", "test": "val"}[segment] + ".pkl"
         )
+        self.ba = read_vocab()
+        self.fo = {v: k for k, v in self.ba.items()}
 
     def dataset(self, seed):
         """
@@ -97,9 +99,11 @@ class KarelDataset(Dataset):
         Arguments:
             segment: the segment to use, must be 'train' or 'test'
         """
-        ba = read_vocab()
         dataset = KarelDataFile(self.path_prefix)
         dataset.shuffle(seed)
         for spec, program in dataset:
-            program = [ba[tok] + 2 for tok in program]
+            program = [self.ba[tok] + 2 for tok in program]
             yield spec, program
+
+    def translate_back(self, tokens):
+        return [self.fo[tok] for tok in tokens]
