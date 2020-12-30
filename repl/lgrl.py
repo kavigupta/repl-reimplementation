@@ -185,7 +185,7 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         return torch.zeros(n, 0, self.e)
 
     def evolve_hidden_state(self, hidden_states, encodings, tokens):
-        hidden_states = torch.cat([tokens.unsqueeze(1), hidden_states], axis=1)
+        hidden_states = torch.cat([hidden_states, tokens.unsqueeze(1)], axis=1)
         return hidden_states, self.entire_sequence_forward(
             encodings,
             PaddedSequence(
