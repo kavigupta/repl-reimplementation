@@ -55,7 +55,7 @@ class LGRL(nn.Module):
 
     def resample_state(self, state, new_indices):
         """
-        Use the updated indices for the state
+        Update the given state with the new indices.
         """
         new_spec_embedding, new_decoder_state = self.spec_encoder.resample_state(
             state.spec_embedding, state.decoder_state, new_indices
