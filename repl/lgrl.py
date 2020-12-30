@@ -68,10 +68,8 @@ class LGRL(nn.Module):
             syntax_state=new_syntax_state,
         )
 
-    def forward(self, inference_state, choice, normalize_logits=True):
-        if choice == 1:
-            return None, None  # </s> token reached
-        embedded_tokens = self.embedding(torch.tensor([choice]))
+    def forward(self, inference_state, choices, normalize_logits=True):
+        embedded_tokens = self.embedding(choices)
         new_decoder_state, decoder_out = self.spec_encoder.evolve_hidden_state(
             inference_state.decoder_state,
             inference_state.spec_embedding,
@@ -80,11 +78,13 @@ class LGRL(nn.Module):
         out, new_syntax_state = self.syntax(
             embedded_tokens.unsqueeze(0), inference_state.syntax_state
         )
+        assert out.shape[0] == 1
+        out = out.squeeze(0)
 
         decoder_out = decoder_out.max_pool()
+        decoder_out = decoder_out[:, -1, :]
         syntax_out = self.syntax_out(out)
         prediction_vector = decoder_out - torch.exp(syntax_out)
-        prediction_vector = prediction_vector.squeeze(0)[-1]
         if normalize_logits:
             prediction_vector = prediction_vector.log_softmax(-1)
         new_state = LGRLInferenceState(
@@ -95,17 +95,19 @@ class LGRL(nn.Module):
         )
         return new_state, prediction_vector
 
-    def begin_inference(self, spec, **kwargs):
-        spec_embedding = self.spec_encoder.encode([spec])
+    def begin_inference(self, specs, **kwargs):
+        spec_embedding = self.spec_encoder.encode(specs)
         decoder_state = self.spec_encoder.initial_hidden_state(spec_embedding)
-        syntax_state = [torch.zeros(1, 1, self.embedding_size) for _ in range(2)]
+        syntax_state = [
+            torch.zeros(1, len(specs), self.embedding_size) for _ in range(2)
+        ]
         state = LGRLInferenceState(
             lgrl=self,
             spec_embedding=spec_embedding,
             decoder_state=decoder_state,
             syntax_state=syntax_state,
         )
-        return state.step(0, **kwargs)
+        return state.step(torch.zeros(len(specs), dtype=torch.long), **kwargs)
 
     def loss(self, specs, programs):
         # add in the end token and pad
