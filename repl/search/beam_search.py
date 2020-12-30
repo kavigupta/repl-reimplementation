@@ -1,16 +1,20 @@
+import torch
+
+
 def beam_search(m, spec, k, max_steps=100):
     weights = torch.zeros(1)
-    beams = torch.zeros(k, 0)
+    beams = torch.zeros(k, 0, dtype=torch.long)
     finished = []
     state, preds = m.begin_inference([spec])
     for _ in range(max_steps):
-        values, indices = torch.topk(preds.flatten(), k)
-        batch_idxs, tokens = flattened_meshgrid_like(preds)
+        weights = weights[:, None] + preds
+        values, indices = torch.topk(weights.flatten(), k - len(finished))
+        batch_idxs, tokens = flattened_meshgrid_like(weights)
         batch_idxs = batch_idxs[indices]
         tokens = tokens[indices]
+        weights = weights.flatten()[indices]
 
-        beams = torch.cat([beams, tokens[:, None]], axis=1)
-        weights = weights[batch_idxs] + values
+        beams = torch.cat([beams[batch_idxs], tokens[:, None]], axis=1)
 
         dones = tokens == 1
         if dones.all():
@@ -23,4 +27,10 @@ def beam_search(m, spec, k, max_steps=100):
 
         state, preds = state.resample(batch_idxs).step(tokens)
     finished.extend(zip(weights, beams))
-    return finished
+    return sorted(((w, b.tolist()) for w, b in finished), reverse=True)
+
+
+def flattened_meshgrid_like(tensor):
+    return [
+        x.flatten() for x in torch.meshgrid(*[torch.arange(s) for s in tensor.shape])
+    ]
