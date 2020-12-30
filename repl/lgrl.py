@@ -84,7 +84,6 @@ class LGRL(nn.Module):
         decoder_out = decoder_out.max_pool()
         decoder_out = decoder_out[:, -1, :]
         syntax_out = self.syntax_out(out)
-        print(decoder_out.shape, syntax_out.shape)
         prediction_vector = decoder_out - torch.exp(syntax_out)
         if normalize_logits:
             prediction_vector = prediction_vector.log_softmax(-1)
