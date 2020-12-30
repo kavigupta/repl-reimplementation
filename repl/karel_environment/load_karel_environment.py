@@ -106,4 +106,6 @@ class KarelDataset(Dataset):
             yield spec, program
 
     def translate_back(self, tokens):
-        return [self.fo[tok] for tok in tokens]
+        return [
+            self.fo[tok - 2] if tok >= 2 else ["<s>", "</s>"][tok] for tok in tokens
+        ]
