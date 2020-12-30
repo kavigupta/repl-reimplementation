@@ -53,6 +53,21 @@ class LGRL(nn.Module):
             prediction_vector = prediction_vector.log_softmax(-1)
         return prediction_vector, outputs
 
+    def resample_state(self, state, new_indices):
+        """
+        Update the given state with the new indices.
+        """
+        new_spec_embedding, new_decoder_state = self.spec_encoder.resample_state(
+            state.spec_embedding, state.decoder_state, new_indices
+        )
+        new_syntax_state = [s[:, new_indices] for s in state.syntax_state]
+        return LGRLInferenceState(
+            lgrl=state.lgrl,
+            spec_embedding=new_spec_embedding,
+            decoder_state=new_decoder_state,
+            syntax_state=new_syntax_state,
+        )
+
     def forward(self, inference_state, choice, normalize_logits=True):
         if choice == 1:
             return None, None  # </s> token reached
@@ -141,6 +156,13 @@ class SpecEncoder(ABC):
         """
         pass
 
+    @abstractmethod
+    def resample_state(self, spec_embedding, decoder_state, new_indices):
+        """
+        Resample the spec embedding and the decoder state with the given indices
+        """
+        pass
+
 
 class AttentionalSpecEncoder(nn.Module, SpecEncoder):
     def __init__(self, embedding_size, *, encoder_layers=2, decoder_layers=2):
@@ -191,6 +213,17 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         result = self.out(result)
         return encodings.replace(result)
 
+    def resample_state(self, spec_embedding, decoder_state, new_indices):
+        """
+        Resample the spec embedding and the decoder state with the given indices
+        """
+        emb, mask = spec_embedding
+        mask = JaggedEmbeddings(mask, emb.indices_for_each)[new_indices].embeddings
+        emb = emb[new_indices]
+        spec_embedding = emb, mask
+        decoder_state = decoder_state[new_indices]
+        return spec_embedding, decoder_state
+
 
 @attr.s
 class LGRLInferenceState:
@@ -201,3 +234,6 @@ class LGRLInferenceState:
 
     def step(self, choices, **kwargs):
         return self.lgrl.forward(self, choices, **kwargs)
+
+    def resample(self, new_indices):
+        return self.lgrl.resample_state(self, new_indices)
