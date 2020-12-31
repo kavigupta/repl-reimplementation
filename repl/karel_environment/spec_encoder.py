@@ -112,10 +112,8 @@ class KarelTaskEncoder(nn.Module):
         self.positional_encoding = PositionalEncoding(self.e)
 
     def forward(self, input_grid, output_grid):
+        assert len(input_grid.shape) == 4
         assert self.image_size == input_grid.shape[-3:]
-        batch_dims = input_grid.shape[:-3]
-        input_grid = input_grid.contiguous().view(-1, *self.image_size)
-        output_grid = output_grid.contiguous().view(-1, *self.image_size)
 
         input_enc = self.input_encoder(input_grid)
         output_enc = self.output_encoder(output_grid)
@@ -123,6 +121,8 @@ class KarelTaskEncoder(nn.Module):
         enc = enc + self.block_1(enc)
         enc = enc + self.block_2(enc)
 
-        enc = enc.view(*(batch_dims + (-1, self.e)))
+        enc = enc.view(input_grid.shape[0], -1, self.e)
+        enc = enc.transpose(0, 1)
         enc = self.positional_encoding(enc)
+        enc = enc.transpose(0, 1)
         return enc

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
-from .utils import JaggedEmbeddings, PaddedSequence
+from .utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding
 
 
 class LGRL(nn.Module):
@@ -175,6 +175,7 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         self.encode_attn = nn.Transformer(
             self.e, num_encoder_layers=encoder_layers, num_decoder_layers=1
         )
+        self.positional_encoding = PositionalEncoding(self.e)
         self.decode_attn = nn.Transformer(
             self.e, num_encoder_layers=1, num_decoder_layers=decoder_layers
         )
@@ -201,6 +202,7 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         tiled_tokens = encodings.tile(tokens.sequences)
         source = encodings.embeddings.transpose(0, 1)
         target = tiled_tokens.transpose(0, 1)
+        target = self.positional_encoding(target)
         # NOTE: the mask for the key padding is inverted. From the docs:
         #   "positions with the value of True will be ignored while the
         #       position with the value of False will be unchanged"

@@ -77,7 +77,9 @@ class PatchEncoder(nn.Module):
         images = images.reshape(n, q, p * p * c)
         # embedded_images : N x Q x E
         images = self.patch_embedding(images)
+        images = images.transpose(0, 1)
         images = self.positional_encoding(images)
+        images = images.transpose(0, 1)
         return images
 
 
