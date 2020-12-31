@@ -10,7 +10,7 @@ from repl.train import supervised_training
 
 supervised_training(
     data=KarelDataset("train").multiple_epochs_iter(seed=0, batch_size=16, epochs=10),
-    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-4),
+    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-3),
     architectures=[
         lambda: LGRL(KarelSpecEncoder(embedding_size=64), embedding_size=64)
     ],
