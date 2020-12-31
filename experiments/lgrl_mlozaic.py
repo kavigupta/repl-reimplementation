@@ -9,14 +9,14 @@ from repl.train import supervised_training
 
 
 supervised_training(
-    data=MlozaicDataset("train").multiple_epochs_iter(seed=0, batch_size=32, epochs=10),
-    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-3),
+    data=MlozaicDataset("train").multiple_epochs_iter(seed=0, batch_size=2, epochs=10),
+    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-4),
     architectures=[
         lambda: LGRL(
             MLozaicSpecEncoder(embedding_size=64),
             embedding_size=64,
         )
     ],
-    paths=["logdirs/basic-lgrl"],
+    paths=["logdirs/lgrl-mlozaic"],
     save_frequency=20,
 )
