@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from ..lgrl import AttentionalSpecEncoder
-from ..utils import JaggedEmbeddings, PaddedSequence
+from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding
 
 from .load_karel_environment import GRID_SIZE
 
@@ -26,7 +26,9 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
     def __init__(self, *, image_size=GRID_SIZE, embedding_size):
         super().__init__(embedding_size)
         self.e = embedding_size
-        self.encoder = KarelTaskEncoder((image_size[0], *image_size[1:]))
+        self.encoder = KarelTaskEncoder(
+            (image_size[0], *image_size[1:]), embedding_size
+        )
 
     def encode(self, specifications):
         flat_specs = []
@@ -57,38 +59,57 @@ class KarelTaskEncoder(nn.Module):
     Instead of embedding the data, it just serializes it instead.
     """
 
-    def __init__(self, image_size):
+    def __init__(self, image_size, embedding_size):
         super().__init__()
 
+        self.e = embedding_size
         c, w, h = image_size
+        assert self.e % 2 == 0
 
         self.image_size = image_size
 
         self.input_encoder = nn.Sequential(
-            nn.Conv2d(in_channels=c, out_channels=32, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=c, out_channels=self.e // 2, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
         )
         self.output_encoder = nn.Sequential(
-            nn.Conv2d(in_channels=c, out_channels=32, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=c, out_channels=self.e // 2, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
         )
 
         self.block_1 = nn.Sequential(
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
         )
         self.block_2 = nn.Sequential(
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
         )
+        self.positional_encoding = PositionalEncoding(self.e)
 
     def forward(self, input_grid, output_grid):
         assert self.image_size == input_grid.shape[-3:]
@@ -102,5 +123,6 @@ class KarelTaskEncoder(nn.Module):
         enc = enc + self.block_1(enc)
         enc = enc + self.block_2(enc)
 
-        enc = enc.view(*(batch_dims + (-1, 64)))
+        enc = enc.view(*(batch_dims + (-1, self.e)))
+        enc = self.positional_encoding(enc)
         return enc

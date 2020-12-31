@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,7 +6,7 @@ from mlozaic.colors import COLORS
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
 from ..lgrl import AttentionalSpecEncoder
-from ..utils import JaggedEmbeddings, PaddedSequence
+from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding
 
 
 class MLozaicSpecEncoder(AttentionalSpecEncoder):
@@ -122,25 +120,3 @@ class MLozaicIOEncoder(nn.Module):
         for idx, padding in enumerate(paddings):
             mask[idx, mask.shape[1] - padding :] = False
         return PaddedSequence(embeddings, mask)
-
-
-class PositionalEncoding(nn.Module):
-    # from the tutorial https://pytorch.org/tutorials/beginner/transformer_tutorial.html
-
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
-        )
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer("pe", pe)
-
-    def forward(self, x):
-        x = x + self.pe[: x.size(0), :]
-        return self.dropout(x)
