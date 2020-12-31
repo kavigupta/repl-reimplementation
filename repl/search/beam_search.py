@@ -9,7 +9,9 @@ def beam_search(m, spec, k, max_steps=100):
     for _ in range(max_steps):
         weights = weights[:, None] + preds
         good_finished = sum(1 for k, v in finished if k >= weights.max())
-        values, indices = torch.topk(weights.flatten(), min(k - good_finished, len(weights.flatten())))
+        values, indices = torch.topk(
+            weights.flatten(), min(k - good_finished, len(weights.flatten()))
+        )
         batch_idxs, tokens = flattened_meshgrid_like(weights)
         batch_idxs = batch_idxs[indices]
         tokens = tokens[indices]
