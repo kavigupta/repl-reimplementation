@@ -17,6 +17,8 @@ class Dataset(ABC):
         pass
 
     def batched_dataset_iter(self, *, seed, batch_size):
+        if self.segment != "train":
+            assert seed == 0
         for batch in chunked(self.dataset(seed), batch_size):
             yield tuple(zip(*batch))
 
