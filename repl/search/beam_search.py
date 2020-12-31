@@ -38,5 +38,5 @@ def beam_search(m, spec, k, max_steps=100):
 def flattened_meshgrid_like(tensor):
     return [
         x.flatten()
-        for x in torch.meshgrid(*[place(m, torch.arange(s)) for s in tensor.shape])
+        for x in torch.meshgrid(*[torch.arange(s).to(tensor.device) for s in tensor.shape])
     ]
