@@ -1,9 +1,11 @@
 import torch
 
+from ..utils import place
+
 
 def beam_search(m, spec, k, max_steps=100):
-    weights = torch.zeros(1)
-    beams = torch.zeros(k, 0, dtype=torch.long)
+    weights = place(m, torch.zeros(1))
+    beams = place(m, torch.zeros(k, 0, dtype=torch.long))
     finished = []
     state, preds = m.begin_inference([spec])
     for _ in range(max_steps):
@@ -35,5 +37,6 @@ def beam_search(m, spec, k, max_steps=100):
 
 def flattened_meshgrid_like(tensor):
     return [
-        x.flatten() for x in torch.meshgrid(*[torch.arange(s) for s in tensor.shape])
+        x.flatten()
+        for x in torch.meshgrid(*[place(m, torch.arange(s)) for s in tensor.shape])
     ]

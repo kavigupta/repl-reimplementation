@@ -105,14 +105,14 @@ class PaddedSequence:
     mask = attr.ib()  # N x l
 
     @staticmethod
-    def of(values, dtype):
+    def of(values, dtype, place_m):
         N = len(values)
         L = max(len(v) for v in values)
-        sequences, mask = torch.zeros((N, L), dtype=dtype), torch.zeros(
-            (N, L), dtype=torch.bool
+        sequences, mask = place(place_m, torch.zeros((N, L), dtype=dtype)), place(
+            place_m, torch.zeros((N, L), dtype=torch.bool)
         )
         for i, v in enumerate(values):
-            sequences[i, : len(v)] = torch.tensor(v)
+            sequences[i, : len(v)] = place(place_m, torch.tensor(v))
             mask[i, : len(v)] = 1
         return PaddedSequence(sequences, mask)
 
@@ -155,3 +155,8 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
+
+
+def place(m, x):
+    x = x.to(next(m.parameters()).device)
+    return x

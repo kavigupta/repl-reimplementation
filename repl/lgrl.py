@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
-from .utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding
+from .utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 
 class LGRL(nn.Module):
@@ -36,8 +36,12 @@ class LGRL(nn.Module):
         self.syntax_out = nn.Linear(embedding_size, alphabet_size)
 
     def entire_sequence_forward(self, specs, programs, normalize_logits=True):
-        inputs = PaddedSequence.of([[0] + prog for prog in programs], dtype=torch.long)
-        outputs = PaddedSequence.of([prog + [1] for prog in programs], dtype=torch.long)
+        inputs = PaddedSequence.of(
+            [[0] + prog for prog in programs], dtype=torch.long, place_m=self
+        )
+        outputs = PaddedSequence.of(
+            [prog + [1] for prog in programs], dtype=torch.long, place_m=self
+        )
 
         embedded_inputs = inputs.map(self.embedding)
         spec_embedding = self.spec_encoder.encode(specs)
@@ -99,7 +103,8 @@ class LGRL(nn.Module):
         spec_embedding = self.spec_encoder.encode(specs)
         decoder_state = self.spec_encoder.initial_hidden_state(spec_embedding)
         syntax_state = [
-            torch.zeros(1, len(specs), self.embedding_size) for _ in range(2)
+            place(self, torch.zeros(1, len(specs), self.embedding_size))
+            for _ in range(2)
         ]
         state = LGRLInferenceState(
             lgrl=self,
@@ -107,7 +112,9 @@ class LGRL(nn.Module):
             decoder_state=decoder_state,
             syntax_state=syntax_state,
         )
-        return state.step(torch.zeros(len(specs), dtype=torch.long), **kwargs)
+        return state.step(
+            place(self, torch.zeros(len(specs), dtype=torch.long)), **kwargs
+        )
 
     def loss(self, specs, programs):
         # add in the end token and pad
@@ -183,7 +190,7 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
 
     def initial_hidden_state(self, encoded_io):
         n = len(encoded_io[0].indices_for_each)
-        return torch.zeros(n, 0, self.e)
+        return place(self, torch.zeros(n, 0, self.e))
 
     def evolve_hidden_state(self, hidden_states, encodings, tokens):
         hidden_states = torch.cat([hidden_states, tokens.unsqueeze(1)], axis=1)
@@ -191,8 +198,12 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
             encodings,
             PaddedSequence(
                 hidden_states,
-                torch.ones(
-                    (hidden_states.shape[0], hidden_states.shape[1]), dtype=torch.bool
+                place(
+                    self,
+                    torch.ones(
+                        (hidden_states.shape[0], hidden_states.shape[1]),
+                        dtype=torch.bool,
+                    ),
                 ),
             ),
         )

@@ -9,11 +9,17 @@ from .state import State
 from .utils import load_model, save_model, shuffle_chunks
 
 
-def train_generic(data, train_fn, report_fn, architectures, paths, save_frequency):
+def train_generic(
+    data, train_fn, report_fn, architectures, paths, save_frequency, gpu=True
+):
     models = []
     min_step = float("inf")
     for arch, path in zip(architectures, paths):
         step, model = load_model(path, architecture=arch)
+        if gpu:
+            model.cuda()
+        else:
+            model.cpu()
         models.append(model)
         min_step = min(step, min_step)
 

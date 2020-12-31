@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from ..lgrl import AttentionalSpecEncoder
-from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding
+from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 from .load_karel_environment import GRID_SIZE
 
@@ -39,14 +39,14 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
             )
             flat_specs += spec.pairs
 
-        inputs = torch.tensor([fs.input for fs in flat_specs])
-        outputs = torch.tensor([fs.output for fs in flat_specs])
+        inputs = place(self, torch.tensor([fs.input for fs in flat_specs]))
+        outputs = place(self, torch.tensor([fs.output for fs in flat_specs]))
         flat_specs = self.encoder(inputs, outputs)
         src_tgt = flat_specs.transpose(0, 1)
         # see entire_sequence_forward for note on mask
         encoding = self.encode_attn(src_tgt, src_tgt)
         encoding = encoding.transpose(0, 1)
-        mask = torch.ones(encoding.shape[:-1], dtype=torch.bool)
+        mask = place(self, torch.ones(encoding.shape[:-1], dtype=torch.bool))
         return JaggedEmbeddings(encoding, indices), mask
 
 

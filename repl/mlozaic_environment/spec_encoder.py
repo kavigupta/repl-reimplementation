@@ -6,7 +6,7 @@ from mlozaic.colors import COLORS
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
 from ..lgrl import AttentionalSpecEncoder
-from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding
+from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 
 class MLozaicSpecEncoder(AttentionalSpecEncoder):
@@ -99,8 +99,11 @@ class MLozaicIOEncoder(nn.Module):
         self.patch_encoder = PatchEncoder(image_size, patch_size, embedding_size)
 
     def forward(self, flat_specs):
-        images = torch.tensor(
-            [np.eye(self.c, dtype=np.float32)[spec.output] for spec in flat_specs]
+        images = place(
+            self,
+            torch.tensor(
+                [np.eye(self.c, dtype=np.float32)[spec.output] for spec in flat_specs]
+            ),
         )
         embedded_images = self.patch_encoder(images)
         max_num_variables = max(len(f.input) for f in flat_specs)
@@ -112,13 +115,13 @@ class MLozaicIOEncoder(nn.Module):
             padding_amount = max_num_variables - len(f.input)
             variables += [0, 0] * padding_amount
             paddings.append(padding_amount)
-        variables = torch.tensor(variables)
+        variables = place(self, torch.tensor(variables))
         embedded_variables = self.alphabet_embedding(variables)
         embedded_variables = embedded_variables.reshape(
             images.shape[0], max_num_variables, self.e
         )
         embeddings = torch.cat([embedded_images, embedded_variables], dim=1)
-        mask = torch.ones(embeddings.shape[:-1], dtype=torch.bool)
+        mask = place(self, torch.ones(embeddings.shape[:-1], dtype=torch.bool))
         for idx, padding in enumerate(paddings):
             mask[idx, mask.shape[1] - padding :] = False
         return PaddedSequence(embeddings, mask)
