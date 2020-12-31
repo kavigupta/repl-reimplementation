@@ -220,7 +220,9 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         result = self.decode_attn(
             source,
             target,
-            tgt_mask=self.decode_attn.generate_square_subsequent_mask(target.shape[0]),
+            tgt_mask=place(
+                self, self.decode_attn.generate_square_subsequent_mask(target.shape[0])
+            ),
             src_key_padding_mask=~encodings_mask,
             tgt_key_padding_mask=~encodings.tile(tokens.mask),
         )
