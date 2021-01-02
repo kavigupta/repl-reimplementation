@@ -32,6 +32,10 @@ def read_vocab(root="data/karel_standard"):
     return {k: int(v) for k, v in vocab}
 
 
+def number_to_token(vocab, tok):
+    return vocab[tok - 2] if tok >= 2 else ["<s>", "</s>"][tok]
+
+
 class KarelDataFile:
     def __init__(self, path_prefix):
         self.indices = read_index(path_prefix + ".index")
@@ -106,6 +110,4 @@ class KarelDataset(Dataset):
             yield spec, program
 
     def translate_back(self, tokens):
-        return [
-            self.fo[tok - 2] if tok >= 2 else ["<s>", "</s>"][tok] for tok in tokens
-        ]
+        return [vocab_token(self.fo, tok) for tok in tokens]
