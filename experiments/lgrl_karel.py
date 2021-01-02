@@ -15,5 +15,6 @@ supervised_training(
         lambda: LGRL(KarelSpecEncoder(embedding_size=64), embedding_size=64)
     ],
     paths=["logdirs/lgrl-karel"],
-    save_frequency=20,
+    save_frequency=200,
+    report_frequency=20,
 )

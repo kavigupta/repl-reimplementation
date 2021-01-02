@@ -18,5 +18,6 @@ supervised_training(
         )
     ],
     paths=["logdirs/lgrl-mlozaic"],
-    save_frequency=20,
+    save_frequency=200,
+    report_frequency=20,
 )
