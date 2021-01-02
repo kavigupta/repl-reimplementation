@@ -10,8 +10,17 @@ from .utils import load_model, save_model, shuffle_chunks
 
 
 def train_generic(
-    data, train_fn, report_fn, architectures, paths, save_frequency, gpu=True
+    data,
+    train_fn,
+    report_fn,
+    architectures,
+    paths,
+    save_frequency,
+    report_frequency=None,
+    gpu=True,
 ):
+    if report_frequency is None:
+        report_frequency = save_frequency
     models = []
     min_step = float("inf")
     for arch, path in zip(architectures, paths):
@@ -30,6 +39,7 @@ def train_generic(
         outputs.append(train_fn(*models, idx, chunk))
         if (idx + 1) % save_frequency == 0:
             save_model(*models, path, idx)
+        if (idx + 1) % report_frequency == 0:
             print(f"[{datetime.now()}]: s={idx}, {report_fn(idx, outputs)}")
             outputs = []
     return models
