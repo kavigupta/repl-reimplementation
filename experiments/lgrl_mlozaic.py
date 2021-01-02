@@ -10,7 +10,7 @@ from repl.train import supervised_training
 
 supervised_training(
     data=MlozaicDataset("train").multiple_epochs_iter(seed=0, batch_size=2, epochs=10),
-    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-4),
+    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-5),
     architectures=[
         lambda: LGRL(
             MLozaicSpecEncoder(embedding_size=64),
