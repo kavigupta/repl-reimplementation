@@ -31,7 +31,7 @@ class LGRL(nn.Module):
 
         self.embedding = nn.Embedding(alphabet_size, embedding_size)
         self.spec_encoder = spec_encoder
-        self.decoder_out = nn.Linear(embedding_size, embedding_size)
+        self.decoder_out = nn.Linear(embedding_size, alphabet_size)
         self.syntax = nn.LSTM(input_size=embedding_size, hidden_size=embedding_size)
         self.syntax_out = nn.Linear(embedding_size, alphabet_size)
 
@@ -49,6 +49,7 @@ class LGRL(nn.Module):
             spec_embedding, embedded_inputs
         )
         decoder_out = decoder_out.max_pool()
+        decoder_out = self.decoder_out(decoder_out)
         syntax_out, _ = self.syntax(embedded_inputs.sequences.transpose(0, 1))
         syntax_out = syntax_out.transpose(0, 1)
         syntax_out = self.syntax_out(syntax_out)
@@ -86,6 +87,7 @@ class LGRL(nn.Module):
         out = out.squeeze(0)
 
         decoder_out = decoder_out.max_pool()
+        decoder_out = self.decoder_out(decoder_out)
         decoder_out = decoder_out[:, -1, :]
         syntax_out = self.syntax_out(out)
         prediction_vector = decoder_out - syntax_out
@@ -186,7 +188,6 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         self.decode_attn = nn.Transformer(
             self.e, num_encoder_layers=1, num_decoder_layers=decoder_layers
         )
-        self.out = nn.Linear(self.e, 2 + len(BACKWARDS_ALPHABET))
 
     def initial_hidden_state(self, encoded_io):
         n = len(encoded_io[0].indices_for_each)
@@ -227,7 +228,6 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
             tgt_key_padding_mask=~encodings.tile(tokens.mask),
         )
         result = result.transpose(0, 1)
-        result = self.out(result)
         return encodings.replace(result)
 
     def resample_state(self, spec_embedding, decoder_state, new_indices):
