@@ -130,9 +130,14 @@ def finetune(policy, value, sampler, rng, n=10000, *, model_path, **kwargs):
 
 
 def supervised_training(optimizer, **kwargs):
+    opt = None
+
     def train_fn(model, idx, chunk):
-        opt = optimizer(model.parameters())
+        nonlocal opt
+        if opt is None:
+            opt = optimizer(model.parameters())
         loss = model.loss(*chunk)
+        opt.zero_grad()
         loss.backward()
         opt.step()
         return loss.item()
