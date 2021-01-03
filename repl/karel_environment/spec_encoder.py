@@ -32,8 +32,8 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
         self.positional_encoding = PositionalEncoding(self.e)
 
     def encode(self, specifications):
-        enc = self.encoder(specifications)
-        enc = enc.view(inputs.shape[0], -1, self.e)
+        enc, indices = self.encoder(specifications)
+        enc = enc.view(enc.shape[0], -1, self.e)
         enc = enc.transpose(0, 1)
         enc = self.positional_encoding(enc)
         # see entire_sequence_forward for note on mask
@@ -52,8 +52,8 @@ class KarelRecurrentSpecEncoder(RecurrentSpecEncoder):
         self.out = nn.Linear(w * h * channels, self.e * 2)
 
     def encode(self, specifications):
-        enc = self.encoder(specifications)
-        enc = enc.view(inputs.shape[0], -1)
+        enc, indices = self.encoder(specifications)
+        enc = enc.view(enc.shape[0], -1)
         enc = self.out(enc)
         return JaggedEmbeddings(enc, indices)
 
@@ -141,4 +141,4 @@ class KarelTaskEncoder(nn.Module):
         enc = enc + self.block_1(enc)
         enc = enc + self.block_2(enc)
 
-        return enc
+        return enc, indices
