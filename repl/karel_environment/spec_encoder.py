@@ -32,17 +32,7 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
         self.positional_encoding = PositionalEncoding(self.e)
 
     def encode(self, specifications):
-        flat_specs = []
-        indices = []
-        for spec in specifications:
-            indices.append(
-                list(range(len(flat_specs), len(flat_specs) + len(spec.pairs)))
-            )
-            flat_specs += spec.pairs
-
-        inputs = place(self, torch.tensor([fs.input for fs in flat_specs]))
-        outputs = place(self, torch.tensor([fs.output for fs in flat_specs]))
-        enc = self.encoder(inputs, outputs)
+        enc = self.encoder(specifications)
         enc = enc.view(inputs.shape[0], -1, self.e)
         enc = enc.transpose(0, 1)
         enc = self.positional_encoding(enc)
@@ -113,7 +103,18 @@ class KarelTaskEncoder(nn.Module):
             nn.ReLU(),
         )
 
-    def forward(self, input_grid, output_grid):
+    def forward(self, specifications):
+
+        flat_specs = []
+        indices = []
+        for spec in specifications:
+            indices.append(
+                list(range(len(flat_specs), len(flat_specs) + len(spec.pairs)))
+            )
+            flat_specs += spec.pairs
+
+        input_grid = place(self, torch.tensor([fs.input for fs in flat_specs]))
+        output_grid = place(self, torch.tensor([fs.output for fs in flat_specs]))
 
         assert len(input_grid.shape) == 4
         assert self.image_size == input_grid.shape[-3:]
