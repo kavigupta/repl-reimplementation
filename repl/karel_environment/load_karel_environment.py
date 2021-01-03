@@ -109,4 +109,4 @@ class KarelDataset(Dataset):
             yield spec, program
 
     def translate_back(self, tokens):
-        return [vocab_token(self.fo, tok) for tok in tokens]
+        return [number_to_token(self.fo, tok) for tok in tokens]
