@@ -29,6 +29,7 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
         self.encoder = KarelTaskEncoder(
             (image_size[0], *image_size[1:]), embedding_size
         )
+        self.positional_encoding = PositionalEncoding(self.e)
 
     def encode(self, specifications):
         flat_specs = []
@@ -41,13 +42,15 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
 
         inputs = place(self, torch.tensor([fs.input for fs in flat_specs]))
         outputs = place(self, torch.tensor([fs.output for fs in flat_specs]))
-        flat_specs = self.encoder(inputs, outputs)
-        src_tgt = flat_specs.transpose(0, 1)
+        enc = self.encoder(inputs, outputs)
+        enc = enc.view(inputs.shape[0], -1, self.e)
+        enc = enc.transpose(0, 1)
+        enc = self.positional_encoding(enc)
         # see entire_sequence_forward for note on mask
-        encoding = self.encode_attn(src_tgt, src_tgt)
-        encoding = encoding.transpose(0, 1)
-        mask = place(self, torch.ones(encoding.shape[:-1], dtype=torch.bool))
-        return JaggedEmbeddings(encoding, indices), mask
+        enc = self.encode_attn(enc, enc)
+        enc = enc.transpose(0, 1)
+        mask = place(self, torch.ones(enc.shape[:-1], dtype=torch.bool))
+        return JaggedEmbeddings(enc, indices), mask
 
 
 class KarelTaskEncoder(nn.Module):
@@ -109,20 +112,17 @@ class KarelTaskEncoder(nn.Module):
             ),
             nn.ReLU(),
         )
-        self.positional_encoding = PositionalEncoding(self.e)
 
     def forward(self, input_grid, output_grid):
+
         assert len(input_grid.shape) == 4
         assert self.image_size == input_grid.shape[-3:]
 
         input_enc = self.input_encoder(input_grid)
         output_enc = self.output_encoder(output_grid)
+
         enc = torch.cat([input_enc, output_enc], 1)
         enc = enc + self.block_1(enc)
         enc = enc + self.block_2(enc)
 
-        enc = enc.view(input_grid.shape[0], -1, self.e)
-        enc = enc.transpose(0, 1)
-        enc = self.positional_encoding(enc)
-        enc = enc.transpose(0, 1)
         return enc
