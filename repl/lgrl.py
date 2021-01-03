@@ -52,10 +52,7 @@ class LGRL(nn.Module):
         syntax_out, _ = self.syntax(embedded_inputs.sequences.transpose(0, 1))
         syntax_out = syntax_out.transpose(0, 1)
         syntax_out = self.syntax_out(syntax_out)
-        syntax_out = torch.clamp(syntax_out, max=20)
-        # prevent exponential value from getting below ~ -1e9 or so. It won't really affect the softmax outcome since values
-        # that small will always be sent to 0 anyway. (since in softmax, exp(-1e-9) = 0)
-        prediction_vector = decoder_out - torch.exp(syntax_out)
+        prediction_vector = decoder_out - syntax_out
         if normalize_logits:
             prediction_vector = prediction_vector.log_softmax(-1)
         return prediction_vector, outputs
@@ -91,7 +88,7 @@ class LGRL(nn.Module):
         decoder_out = decoder_out.max_pool()
         decoder_out = decoder_out[:, -1, :]
         syntax_out = self.syntax_out(out)
-        prediction_vector = decoder_out - torch.exp(syntax_out)
+        prediction_vector = decoder_out - syntax_out
         if normalize_logits:
             prediction_vector = prediction_vector.log_softmax(-1)
         new_state = LGRLInferenceState(
