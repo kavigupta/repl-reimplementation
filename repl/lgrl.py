@@ -242,6 +242,61 @@ class AttentionalSpecEncoder(nn.Module, SpecEncoder):
         return spec_embedding, decoder_state
 
 
+class RecurrentSpecEncoder(nn.Module, SpecEncoder):
+    def __init__(self, embedding_size, *, layers=2):
+        super().__init__()
+
+        self.e = embedding_size
+        self.layers = layers
+        self.input_size = self.e * 3
+
+        self.lstm = nn.LSTM(
+            input_size=self.input_size, hidden_size=self.e, num_layers=layers
+        )
+        self.out = nn.Linear(self.e, 2 + len(BACKWARDS_ALPHABET))
+
+    def initial_hidden_state(self, encoded_io):
+        n = len(encoded_io.embeddings)
+        return tuple(place(self, torch.zeros(self.layers, n, self.e)) for _ in range(2))
+
+    def evolve_hidden_state(self, hidden_states, encodings, tokens):
+        tiled_tokens = encodings.tile(tokens.unsqueeze(1))
+        extended_encodings = encodings.embeddings.unsqueeze(1).repeat(
+            1, tiled_tokens.shape[1], 1
+        )
+        combined_encodings = torch.cat([extended_encodings, tiled_tokens], dim=2)
+        out, hidden_states = self.lstm(
+            combined_encodings.transpose(0, 1), hidden_states
+        )
+        out = out.transpose(0, 1)
+        return hidden_states, encodings.replace(out)
+
+    def entire_sequence_forward(self, encodings, tokens):
+        tiled_tokens = encodings.tile(tokens.sequences)
+        extended_encodings = encodings.embeddings.unsqueeze(1).repeat(
+            1, tiled_tokens.shape[1], 1
+        )
+        combined_encodings = torch.cat([extended_encodings, tiled_tokens], dim=2)
+        out, _ = self.lstm(combined_encodings.transpose(0, 1))
+        out = out.transpose(0, 1)
+        return encodings.replace(out)
+
+    def resample_state(self, spec_embedding, decoder_state, new_indices):
+        """
+        Resample the spec embedding and the decoder state with the given indices
+        """
+        decoder_state = tuple(
+            JaggedEmbeddings(d.transpose(0, 1), spec_embedding.indices_for_each)[
+                new_indices
+            ]
+            .embeddings.transpose(0, 1)
+            .contiguous()
+            for d in decoder_state
+        )
+        spec_embedding = spec_embedding[new_indices]
+        return spec_embedding, decoder_state
+
+
 @attr.s
 class LGRLInferenceState:
     lgrl = attr.ib()

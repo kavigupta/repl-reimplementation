@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ..lgrl import AttentionalSpecEncoder
+from ..lgrl import AttentionalSpecEncoder, RecurrentSpecEncoder
 from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 from .load_karel_environment import GRID_SIZE
@@ -41,6 +41,21 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
         enc = enc.transpose(0, 1)
         mask = place(self, torch.ones(enc.shape[:-1], dtype=torch.bool))
         return JaggedEmbeddings(enc, indices), mask
+
+
+class KarelRecurrentSpecEncoder(RecurrentSpecEncoder):
+    def __init__(self, *, image_size=GRID_SIZE, embedding_size, channels=64):
+        super().__init__(embedding_size)
+        self.e = embedding_size
+        self.encoder = KarelTaskEncoder((image_size[0], *image_size[1:]), channels)
+        _, w, h = image_size
+        self.out = nn.Linear(w * h * channels, self.e * 2)
+
+    def encode(self, specifications):
+        enc = self.encoder(specifications)
+        enc = enc.view(inputs.shape[0], -1)
+        enc = self.out(enc)
+        return JaggedEmbeddings(enc, indices)
 
 
 class KarelTaskEncoder(nn.Module):
