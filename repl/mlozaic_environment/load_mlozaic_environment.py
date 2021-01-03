@@ -37,7 +37,6 @@ class MlozaicDataset(Dataset):
         np.random.RandomState(seed).shuffle(indices)
         for i in indices:
             program, inputs = self.data[str(i)]
-            inputs = inputs[:-1]
             spec = [
                 Pair(
                     inp,
@@ -46,4 +45,4 @@ class MlozaicDataset(Dataset):
                 for inp in inputs
             ]
             program = [BACKWARDS_ALPHABET[tok] + 2 for tok in program.code]
-            yield Specification(spec), program
+            yield Specification(spec[:-1], spec[-1:]), program

@@ -54,8 +54,7 @@ class KarelDataFile:
             Pair(get_one_hot(eg["in"]), get_one_hot(eg["out"]))
             for eg in object["examples"]
         ]
-        pairs = pairs[:-1]
-        return Specification(pairs), object["code"]
+        return Specification(pairs[:-1], pairs[-1:]), object["code"]
 
     def __iter__(self):
         for i in range(len(self)):
