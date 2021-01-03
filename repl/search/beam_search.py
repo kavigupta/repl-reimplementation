@@ -19,6 +19,8 @@ class BeamSearch(Search):
         for _ in range(self.max_steps):
             weights = weights[:, None] + preds
             good_finished = sum(1 for k, v in finished if k >= weights.max())
+            if good_finished > self.k:
+                break
             values, indices = torch.topk(
                 weights.flatten(), min(self.k - good_finished, len(weights.flatten()))
             )
@@ -39,7 +41,6 @@ class BeamSearch(Search):
             weights = weights[~dones]
 
             state, preds = state.resample(batch_idxs).step(tokens)
-        finished.extend(zip(weights, beams))
         return sorted(((w.item(), b.tolist()) for w, b in finished), reverse=True)
 
 
