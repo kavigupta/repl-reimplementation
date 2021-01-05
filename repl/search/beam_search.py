@@ -34,7 +34,8 @@ class BeamSearch(Search):
             dones = tokens == 1
             if dones.all():
                 break
-            finished.extend(zip(weights[dones], beams[dones]))
+            for weight, beam in zip(weights[dones], beams[dones]):
+                finished.append((weight, beam[:-1]))
             beams = beams[~dones]
             batch_idxs = batch_idxs[~dones]
             tokens = tokens[~dones]
