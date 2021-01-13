@@ -14,11 +14,13 @@ supervised_training(
     optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-4 * 16 / 128),
     architectures=[
         lambda: LGRL(
-            KarelSpecEncoder(embedding_size=embedding_size),
+            KarelSpecEncoder(
+                embedding_size=embedding_size, encoder_layers=4, decoder_layers=4
+            ),
             embedding_size=embedding_size,
         )
     ],
-    paths=[f"logdirs/lgrl-karel-{embedding_size}"],
+    paths=[f"logdirs/lgrl-karel-deep-{embedding_size}"],
     save_frequency=200,
     report_frequency=20,
 )

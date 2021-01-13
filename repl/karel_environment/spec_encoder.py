@@ -23,8 +23,8 @@ class KarelSpecEncoder(AttentionalSpecEncoder):
     The result is then transformed into alphabet space and max-pooled.
     """
 
-    def __init__(self, *, image_size=GRID_SIZE, embedding_size):
-        super().__init__(embedding_size)
+    def __init__(self, *, image_size=GRID_SIZE, embedding_size, **kwargs):
+        super().__init__(embedding_size, **kwargs)
         self.e = embedding_size
         self.encoder = KarelTaskEncoder(
             (image_size[0], *image_size[1:]), embedding_size
