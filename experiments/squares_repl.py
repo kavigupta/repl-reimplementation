@@ -1,6 +1,6 @@
 import numpy as np
 
-from repl.squares_environment import *
+from repl.squares_environment.squares_environment import *
 from repl.train import pretrain, finetune
 
 model_path = "logdirs/squares_repl_1"
