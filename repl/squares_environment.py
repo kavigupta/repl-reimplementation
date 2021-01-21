@@ -3,11 +3,11 @@ import attr
 import numpy as np
 import torch
 
-from .autoregress import AutoRegressor, AutoRegressDistribution
+from .utils.autoregress import AutoRegressor, AutoRegressDistribution
 from .program import SequentialProgram
 from .policy import Policy
 from .specification import Spec
-from .distribution import IndependentDistribution
+from .utils.distribution import IndependentDistribution
 
 
 @attr.s(hash=True)

@@ -4,7 +4,7 @@ import attr
 
 import torch
 
-from repl.distribution import Distribution
+from .distribution import Distribution
 
 
 def fcnet(*layer_sizes):
