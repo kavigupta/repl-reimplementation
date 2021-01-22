@@ -2,9 +2,9 @@ import numpy as np
 import torch
 
 from synthesis.lgrl import LGRL
-from synthesis.karel_environment.spec_encoder import KarelRecurrentSpecEncoder
+from synthesis.environment.karel.spec_encoder import KarelRecurrentSpecEncoder
 
-from synthesis.karel_environment.load_karel_environment import KarelDataset
+from synthesis.environment.karel.load_karel_environment import KarelDataset
 from synthesis.train import supervised_training
 
 

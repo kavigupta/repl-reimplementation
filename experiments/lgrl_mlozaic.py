@@ -2,9 +2,9 @@ import numpy as np
 import torch
 
 from synthesis.lgrl import LGRL
-from synthesis.mlozaic_environment.spec_encoder import MLozaicSpecEncoder
+from synthesis.environment.mlozaic.spec_encoder import MLozaicSpecEncoder
 
-from synthesis.mlozaic_environment.load_mlozaic_environment import MlozaicDataset
+from synthesis.environment.mlozaic.load_mlozaic_environment import MlozaicDataset
 from synthesis.train import supervised_training
 
 
