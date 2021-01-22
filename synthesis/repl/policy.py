@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from .state import State
+from .state import ReplSearchState
 
 
 class Policy(ABC):
@@ -42,4 +42,4 @@ class Policy(ABC):
         return new_states
 
     def initial_state(self, spec):
-        return State(self.initial_program_set, spec)
+        return ReplSearchState(self.initial_program_set, spec)

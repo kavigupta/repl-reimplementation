@@ -4,7 +4,7 @@ import numpy as np
 from more_itertools import chunked
 
 from ..train import train_generic
-from .state import State
+from .state import ReplSearchState
 
 
 def pretrain(policy_arch, data, rng, lr=1e-3, *, report_frequency=100, model_path):

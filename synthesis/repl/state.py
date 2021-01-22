@@ -4,7 +4,7 @@ from .specification import Spec
 
 
 @attr.s
-class State:
+class ReplSearchState:
     partial_programs = attr.ib()
     spec: Spec = attr.ib()
 
@@ -21,7 +21,7 @@ class State:
         return any(self.spec.program_is_correct(p) for p in self.partial_programs)
 
     def transition(self, action):
-        return State(
+        return ReplSearchState(
             [self.spec.program_class.production(action, self.partial_programs)],
             self.spec,
         )
