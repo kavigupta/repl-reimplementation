@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 
-from repl.lgrl import LGRL
-from repl.mlozaic_environment.spec_encoder import MLozaicSpecEncoder
+from synthesis.lgrl import LGRL
+from synthesis.mlozaic_environment.spec_encoder import MLozaicSpecEncoder
 
-from repl.mlozaic_environment.load_mlozaic_environment import MlozaicDataset
-from repl.train import supervised_training
+from synthesis.mlozaic_environment.load_mlozaic_environment import MlozaicDataset
+from synthesis.train import supervised_training
 
 
 supervised_training(

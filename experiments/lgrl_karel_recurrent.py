@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 
-from repl.lgrl import LGRL
-from repl.karel_environment.spec_encoder import KarelRecurrentSpecEncoder
+from synthesis.lgrl import LGRL
+from synthesis.karel_environment.spec_encoder import KarelRecurrentSpecEncoder
 
-from repl.karel_environment.load_karel_environment import KarelDataset
-from repl.train import supervised_training
+from synthesis.karel_environment.load_karel_environment import KarelDataset
+from synthesis.train import supervised_training
 
 
 supervised_training(

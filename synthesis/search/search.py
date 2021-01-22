@@ -17,7 +17,7 @@ def frozen_hash(m):
     return m._frozen_hash
 
 
-@permacache("repl/search", key_function=dict(m=frozen_hash, spec=stable_hash))
+@permacache("synthesis/search", key_function=dict(m=frozen_hash, spec=stable_hash))
 def infer(search, m, spec):
     m.eval()
     with torch.no_grad():
