@@ -8,7 +8,7 @@ from karel_for_synthesis import (
     ExecutorRuntimeException,
 )
 
-from ..executor import Executor, ExecutionError
+from ..environment.executor import Executor, ExecutionError
 from .load_karel_environment import read_vocab, number_to_token
 
 

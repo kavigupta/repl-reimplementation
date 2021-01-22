@@ -20,7 +20,7 @@ class ExecutionError(Exception):
 
 
 @permacache(
-    "synthesis/executor/evaluate_pair",
+    "synthesis/environment/executor/evaluate_pair",
     key_function=dict(program=stable_hash, pair=stable_hash),
 )
 def evaluate_pair(executor, program, pair):
