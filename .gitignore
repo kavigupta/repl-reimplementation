@@ -5,4 +5,4 @@ logdirs-old
 # python
 *.pyc
 .ipynb_checkpoints
-Untitled.ipynb
+Untitled*.ipynb
