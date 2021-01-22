@@ -1,16 +1,44 @@
 import torch
 import numpy as np
 
+import attr
 from more_itertools import chunked
 
 from ..train import train_generic
 from .state import ReplSearchState
+from ..environment.dataset import Dataset
 
 
-def pretrain(policy_arch, data, rng, lr=1e-3, *, report_frequency=100, model_path):
+@attr.s
+class PretrainDataset(Dataset):
+    underlying = attr.ib()
+    dynamics = attr.ib()
+
+    def __attrs_post_init__(self):
+        super().__init__(self.underlying.segment)
+
+    def dataset(self, seed):
+        for spec, program in self.underlying.dataset(seed):
+            for pp, a in program.partials:
+                yield (ReplSearchState(pp, spec, self.dynamics), a)
+
+
+def pretrain(
+    policy_arch,
+    dynamics,
+    data,
+    rng,
+    lr=1e-3,
+    *,
+    report_frequency=100,
+    batch_size,
+    epochs,
+    seed,
+    model_path,
+):
     def train_fn(policy, idx, chunk):
         optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
-        states, actions = zip(*chunk)
+        states, actions = chunk
         dist = policy(states)
         predictions = dist.mle()
         optimizer.zero_grad()
@@ -25,7 +53,9 @@ def pretrain(policy_arch, data, rng, lr=1e-3, *, report_frequency=100, model_pat
         return f"Accuracy: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
 
     train_generic(
-        data,
+        PretrainDataset(data, dynamics).multiple_epochs_iter(
+            batch_size=batch_size, epochs=epochs, seed=seed
+        ),
         train_fn,
         report_fn,
         [policy_arch],
