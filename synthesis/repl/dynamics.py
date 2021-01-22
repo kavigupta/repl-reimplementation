@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 from .program import Program
 
 
-class Spec(ABC):
+class Dynamics(ABC):
     program_class = Program
 
     @abstractmethod
-    def partially_execute(self, program):
+    def partially_execute(self, program, spec):
         pass
 
     @abstractmethod

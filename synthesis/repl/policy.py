@@ -11,6 +11,11 @@ class Policy(ABC):
 
     @property
     @abstractmethod
+    def dynamics(self):
+        pass
+
+    @property
+    @abstractmethod
     def initial_program_set(self):
         pass
 
@@ -42,4 +47,4 @@ class Policy(ABC):
         return new_states
 
     def initial_state(self, spec):
-        return ReplSearchState(self.initial_program_set, spec)
+        return ReplSearchState(self.initial_program_set, spec, self.dynamics)

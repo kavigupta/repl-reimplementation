@@ -1,16 +1,18 @@
 import attr
 
-from .specification import Spec
-
 
 @attr.s
 class ReplSearchState:
     partial_programs = attr.ib()
-    spec: Spec = attr.ib()
+    specification = attr.ib()
+    dynamics = attr.ib()
 
     @property
     def semantic_partial_programs(self):
-        return [self.spec.partially_execute(p) for p in self.partial_programs]
+        return [
+            self.dynamics.partially_execute(p, self.specification)
+            for p in self.partial_programs
+        ]
 
     @property
     def done(self):
@@ -24,6 +26,7 @@ class ReplSearchState:
         return ReplSearchState(
             [self.spec.program_class.production(action, self.partial_programs)],
             self.spec,
+            self.dynamics,
         )
 
 
