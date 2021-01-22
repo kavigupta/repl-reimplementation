@@ -5,8 +5,8 @@ from more_itertools import chunked
 import torch
 import numpy as np
 
-from .state import State
-from .utils import load_model, save_model, shuffle_chunks
+from .repl.state import State
+from .utils.utils import load_model, save_model, shuffle_chunks
 
 
 def train_generic(
@@ -38,42 +38,33 @@ def train_generic(
             continue
         outputs.append(train_fn(*models, idx, chunk))
         if (idx + 1) % save_frequency == 0:
-            save_model(*models, path, idx)
+            for model, path in zip(models, paths):
+                save_model(model, path, idx)
         if (idx + 1) % report_frequency == 0:
             print(f"[{datetime.now()}]: s={idx}, {report_fn(idx, outputs)}")
             outputs = []
     return models
 
 
-def pretrain(
-    policy_arch, sampler, rng, n=10000, lr=1e-3, *, report_frequency=100, model_path
-):
-    def data_iterator():
-        for _ in range(n):
-            spec, program = sampler(rng)
-            for pp, a in program.partials:
-                yield (State(pp, spec), a)
-
+def pretrain(policy_arch, data, rng, lr=1e-3, *, report_frequency=100, model_path):
     def train_fn(policy, idx, chunk):
         optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
         states, actions = zip(*chunk)
         dist = policy(states)
         predictions = dist.mle()
         optimizer.zero_grad()
+        loss = -dist.log_probability(actions).sum()
         loss.backward()
         optimizer.step()
         acc = np.mean([p == a for p, a in zip(predictions, actions)])
-        loss = -dist.log_probability(actions).sum()
         return acc, loss
 
     def report_fn(outputs):
         accs, losses = np.array(outputs).T
         return f"Accuracy: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
 
-    data = shuffle_chunks(data_iterator(), int(n ** (2 / 3)), rng=rng)
-
     train_generic(
-        chunked(data, policy.batch_size),
+        data,
         train_fn,
         report_fn,
         [policy_arch],
@@ -116,11 +107,11 @@ def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
     return rewards
 
 
-def finetune(policy, value, sampler, rng, n=10000, *, model_path, **kwargs):
+def finetune(policy, value, data, rng, *, model_path, **kwargs):
     train_generic(
-        data=chunked(range(n), n_each),
+        data=data,
         train_fn=lambda policy, value, idx, chunk: finetune_step(
-            policy, value, sampler, rng, **kwargs, n=len(chunk)
+            policy, value, chunk, rng, **kwargs, n=len(chunk)
         ),
         report_fn=lambda outs: f"Reward: {outs[0]}",
         architectures=[policy, value],

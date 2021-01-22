@@ -2,7 +2,7 @@ import attr
 
 import torch
 
-from ..utils import place
+from ..utils.utils import place
 from .search import Search
 
 

@@ -10,7 +10,7 @@ from mlozaic.renderer import render
 
 from ..spec import Specification, Pair
 from ..dataset import Dataset
-from ..utils import split_indices
+from ...utils.utils import split_indices
 
 
 class MlozaicDataset(Dataset):

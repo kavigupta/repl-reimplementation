@@ -5,8 +5,8 @@ import torch.nn as nn
 from mlozaic.colors import COLORS
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
-from ..lgrl import AttentionalSpecEncoder
-from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
+from ...lgrl import AttentionalSpecEncoder
+from ...utils.utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 
 class MLozaicSpecEncoder(AttentionalSpecEncoder):

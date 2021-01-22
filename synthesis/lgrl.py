@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from mlozaic.grammar import BACKWARDS_ALPHABET
 
-from .utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
+from .utils.utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 
 class LGRL(nn.Module):

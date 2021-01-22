@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ..lgrl import AttentionalSpecEncoder, RecurrentSpecEncoder
-from ..utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
+from ...lgrl import AttentionalSpecEncoder, RecurrentSpecEncoder
+from ...utils.utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
 from .load_karel_environment import GRID_SIZE
 
