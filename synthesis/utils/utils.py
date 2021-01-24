@@ -117,11 +117,43 @@ class PaddedSequence:
         return PaddedSequence(sequences, mask)
 
     @property
+    def N(self):
+        return self.mask.shape[0]
+
+    @property
     def L(self):
         return self.mask.shape[1]
 
+    @property
+    def E(self):
+        return self.sequences.shape[2:]
+
     def map(self, f):
         return PaddedSequence(f(self.sequences), self.mask)
+
+    def cat(self, other):
+        assert self.N == other.N
+        assert self.E == other.E
+        lengths_s = self.mask.sum(-1)
+        lengths_o = other.mask.sum(-1)
+        N = self.N
+        L = (lengths_s + lengths_o).max()
+        E = self.E
+        sequences = torch.zeros((N, L, *E), dtype=self.sequences.dtype).to(
+            self.sequences.device
+        )
+        mask = torch.zeros((N, L), dtype=torch.bool).to(self.sequences.device)
+
+        batch_idxs_s, seq_idxs_s = torch.where(self.mask)
+        sequences[batch_idxs_s, seq_idxs_s] = self.sequences[batch_idxs_s, seq_idxs_s]
+        mask[batch_idxs_s, seq_idxs_s] = 1
+        batch_idxs_o, seq_idxs_o = torch.where(other.mask)
+        shifted_seq_idxs_o = seq_idxs_o + lengths_s[batch_idxs_o]
+        sequences[batch_idxs_o, shifted_seq_idxs_o] = other.sequences[
+            batch_idxs_o, seq_idxs_o
+        ]
+        mask[batch_idxs_o, shifted_seq_idxs_o] = 1
+        return PaddedSequence(sequences, mask)
 
 
 def split_indices(segment, split, dataset_size):
