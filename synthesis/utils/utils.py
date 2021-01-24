@@ -153,6 +153,12 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
+        if isinstance(x, PaddedSequence):
+            seqs = x.sequences
+            seqs = seqs.transpose(0, 1)
+            seqs = self(seqs)
+            seqs = seqs.transpose(0, 1)
+            return PaddedSequence(seqs, x.mask)
         x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
