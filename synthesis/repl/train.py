@@ -46,9 +46,9 @@ def pretrain(
         loss.backward()
         optimizer.step()
         acc = np.mean([p == a for p, a in zip(predictions, actions)])
-        return acc, loss
+        return acc, loss.item()
 
-    def report_fn(outputs):
+    def report_fn(idx, outputs):
         accs, losses = np.array(outputs).T
         return f"Accuracy: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
 
