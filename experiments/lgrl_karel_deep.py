@@ -10,8 +10,8 @@ from synthesis.train import supervised_training
 embedding_size = 256
 
 supervised_training(
-    data=KarelDataset("train").multiple_epochs_iter(seed=0, batch_size=16, epochs=10),
-    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-4 * 16 / 128),
+    data=KarelDataset("train").multiple_epochs_iter(seed=0, batch_size=8, epochs=10),
+    optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-5 * 8 / 128),
     architectures=[
         lambda: LGRL(
             KarelSpecEncoder(
@@ -22,5 +22,5 @@ supervised_training(
     ],
     paths=[f"logdirs/lgrl-karel-deep-{embedding_size}"],
     save_frequency=200,
-    report_frequency=20,
+    report_frequency=200,
 )
