@@ -7,7 +7,7 @@ class RobustfillDynamics(Dynamics):
     def partially_execute(self, program, spec):
         out = []
         ins, outs = [p.input for p in spec.pairs], [p.output for p in spec.pairs]
-        state = RobState(ins, outs)
+        state = RobState.new(ins, outs)
         for tok in program.tokens:
             state = interpret(tok, state)
         return state
