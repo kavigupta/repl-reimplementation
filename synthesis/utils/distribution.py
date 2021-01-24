@@ -22,6 +22,7 @@ class Distribution(ABC):
 class IndependentDistribution(Distribution):
     type = attr.ib()
     by_parameter = attr.ib()
+    getattr = attr.ib(default=getattr)
 
     @property
     def _count(self):
@@ -55,6 +56,6 @@ class IndependentDistribution(Distribution):
     def log_probability(self, outcomes):
         log_probs = []
         for param in self.by_parameter:
-            values = [getattr(outcome, param) for outcome in outcomes]
+            values = [self.getattr(outcome, param) for outcome in outcomes]
             log_probs.append(self.by_parameter[param][range(len(values)), values])
         return torch.stack(log_probs).sum(0)
