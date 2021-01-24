@@ -5,7 +5,8 @@ import numpy as np
 from .ROB import generate_FIO
 from .ROBUT import ALL_BUTTS
 
-TOKENS = [str(t) for t in ALL_BUTTS]
+TOKENS = sorted(str(t) for t in ALL_BUTTS)
+TOKEN_TO_INDEX = {t: i for i, t in enumerate(TOKENS)}
 interpret_back = {str(t): t for t in ALL_BUTTS}
 
 
