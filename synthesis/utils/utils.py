@@ -98,6 +98,21 @@ class JaggedEmbeddings:
             embeddings=self.embeddings[gather], indices_for_each=new_indices
         )
 
+    def to_padded_sequence(self):
+        L = max(len(x) for x in self.indices_for_each)
+        N = len(self.indices_for_each)
+        E = self.embeddings.shape[1:]
+        sequences = torch.zeros((N, L, *E), dtype=self.embeddings.dtype).to(
+            self.embeddings.device
+        )
+        mask = torch.zeros((N, L), dtype=torch.bool).to(self.embeddings.device)
+        batch_idxs = [i for i, idxs in enumerate(self.indices_for_each) for _ in idxs]
+        seq_idxs = [j for idxs in self.indices_for_each for j, _ in enumerate(idxs)]
+        original_idxs = [k for idxs in self.indices_for_each for k in idxs]
+        sequences[batch_idxs, seq_idxs] = self.embeddings[original_idxs]
+        mask[batch_idxs, seq_idxs] = 1
+        return PaddedSequence(sequences, mask)
+
 
 @attr.s
 class PaddedSequence:
