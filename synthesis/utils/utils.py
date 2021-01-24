@@ -54,6 +54,16 @@ class JaggedEmbeddings:
         InputEmbeddings([a, b, c, d, e], [[0, 1], [2, 3, 4]])
     """
 
+    @classmethod
+    def consecutive(cls, embeddings, lengths):
+        assert embeddings.shape[0] == sum(lengths)
+        indices_each = []
+        start = 0
+        for length in lengths:
+            indices_each.append(list(range(start, start + length)))
+            start += length
+        return cls(embeddings, indices_each)
+
     embeddings = attr.ib()
     indices_for_each = attr.ib()
 
