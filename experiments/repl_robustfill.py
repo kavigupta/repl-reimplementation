@@ -16,7 +16,7 @@ va = lambda: RobustfillValue().cuda()
 rng = np.random.RandomState(0)
 
 
-batch_size = 64
+batch_size = 512
 
 pretrain(
     pa,
