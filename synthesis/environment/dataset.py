@@ -4,6 +4,8 @@ from more_itertools import chunked
 
 import numpy as np
 
+from ..utils.utils import shuffle_chunks
+
 
 class Dataset(ABC):
     def __init__(self, segment):
@@ -27,3 +29,16 @@ class Dataset(ABC):
             yield from self.batched_dataset_iter(
                 seed=specific_seed, batch_size=batch_size
             )
+
+    def shuffle_chunks(self, chunk_size):
+        return ShuffledChunksDataset(self, chunk_size)
+
+
+class ShuffledChunksDataset(Dataset):
+    def __init__(self, dataset, chunk_size):
+        super().__init__(self, dateset.segment)
+        self.dataset = dataset
+        self.chunk_size = chunk_size
+
+    def dataset(self, seed):
+        yield from shuffle_chunks(self.dataset, self.chunk_size, rng)

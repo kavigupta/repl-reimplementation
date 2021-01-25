@@ -53,9 +53,9 @@ def pretrain(
         return f"Accuracy: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
 
     train_generic(
-        PretrainDataset(data, dynamics).multiple_epochs_iter(
-            batch_size=batch_size, epochs=epochs, seed=seed
-        ),
+        PretrainDataset(data, dynamics)
+        .shuffle_chunks(batch_size * 100)
+        .multiple_epochs_iter(batch_size=batch_size, epochs=epochs, seed=seed),
         train_fn,
         report_fn,
         [policy_arch],
