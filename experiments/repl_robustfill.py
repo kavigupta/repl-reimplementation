@@ -25,5 +25,7 @@ pretrain(
     rng,
     lr=1e-5,
     model_path=model_path,
-    batch_size=batch_size, epochs=10, seed=0
+    batch_size=batch_size,
+    epochs=10,
+    seed=0,
 )
