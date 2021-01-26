@@ -6,11 +6,6 @@ from .state import ReplSearchState
 class Policy(ABC):
     @property
     @abstractmethod
-    def batch_size(self):
-        pass
-
-    @property
-    @abstractmethod
     def dynamics(self):
         pass
 

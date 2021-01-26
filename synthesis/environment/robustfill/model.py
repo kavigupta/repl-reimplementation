@@ -6,6 +6,9 @@ import numpy as np
 
 from ...utils.utils import JaggedEmbeddings, PositionalEncoding
 from ...utils.distribution import IndependentDistribution
+from ...repl.policy import Policy
+from ...repl.program import SequentialProgram
+from .dynamics import RobustfillDynamics
 
 from robustfill import TOKENS, TOKEN_TO_INDEX
 
@@ -13,11 +16,19 @@ ALPHABET_SIZE = len(string.printable)
 NUM_TOKENS = len(TOKENS)
 
 
-class RobustfillPolicy(nn.Module):
+class RobustfillPolicy(nn.Module, Policy):
     def __init__(self, e=512, **kwargs):
         super().__init__()
         self.embedding = RobustfillEmbedding(e=e, **kwargs)
         self.output_layer = nn.Linear(e, NUM_TOKENS)
+
+    @property
+    def dynamics(self):
+        return RobustfillDynamics()
+
+    @property
+    def initial_program_set(self):
+        return [SequentialProgram([])]
 
     def forward(self, states):
         embedding = self.embedding(states)
