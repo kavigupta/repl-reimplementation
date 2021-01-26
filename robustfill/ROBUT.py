@@ -963,7 +963,10 @@ def get_span_mask_render(str1, span_btns):
 
     ret = None
     for render in all_renders:
-        ret = render(ret)
+        try:
+            ret = render(ret)
+        except:
+            pass
 
     return ret
 
