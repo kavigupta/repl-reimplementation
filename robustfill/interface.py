@@ -17,7 +17,7 @@ def generate(n_io):
 
 def create_dataset(path, n, min_eg, max_eg):
     with shelve.open(path, "c") as s:
-        for i in tqdm.trange(n):
+        for i in tqdm.tqdm(range(n)):
             i = str(i)
             if i not in s:
                 s[i] = generate(np.random.randint(min_eg, max_eg + 1))

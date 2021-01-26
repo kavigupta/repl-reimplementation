@@ -5,7 +5,7 @@ from synthesis.environment.robustfill.dynamics import RobustfillDynamics
 from synthesis.environment.robustfill.model import RobustfillPolicy
 from synthesis.repl.train import pretrain, finetune
 
-model_path = "logdirs/repl_robustfill_2"
+model_path = "logdirs/repl_robustfill_3"
 
 
 data = RobustfillDataset("train")
@@ -16,7 +16,7 @@ va = lambda: RobustfillValue().cuda()
 rng = np.random.RandomState(0)
 
 
-batch_size = 512
+batch_size = 256
 
 pretrain(
     pa,
@@ -26,6 +26,6 @@ pretrain(
     lr=1e-5,
     model_path=model_path,
     batch_size=batch_size,
-    epochs=10,
+    epochs=2,
     seed=0,
 )
