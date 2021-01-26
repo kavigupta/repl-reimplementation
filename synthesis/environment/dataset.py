@@ -42,4 +42,6 @@ class ShuffledChunksDataset(Dataset):
 
     def dataset(self, seed):
         rng = np.random.RandomState(seed)
-        yield from shuffle_chunks(self.underlying.dataset(rng.randint(2 ** 32)), self.chunk_size, rng)
+        yield from shuffle_chunks(
+            self.underlying.dataset(rng.randint(2 ** 32)), self.chunk_size, rng
+        )
