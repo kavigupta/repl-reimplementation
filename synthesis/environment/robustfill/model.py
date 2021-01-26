@@ -46,6 +46,25 @@ class RobustfillPolicy(nn.Module, Policy):
         )
 
 
+class RobustfillValue(nn.Module):
+    def __init__(self, e=512, **kwargs):
+        super().__init__()
+        self.embedding = RobustfillEmbedding(e=e, **kwargs)
+        self.fcnet = nn.Sequential(
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, states):
+        embedding = self.embedding(states)
+        predictions = self.fcnet(embedding)
+        return predictions
+
+
 class RobustfillEmbedding(nn.Module):
     def __init__(self, e=512, nhead=8, channels=64, layers=4):
         super().__init__()
