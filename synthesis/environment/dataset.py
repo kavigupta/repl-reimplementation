@@ -33,6 +33,9 @@ class Dataset(ABC):
     def shuffle_chunks(self, chunk_size):
         return ShuffledChunksDataset(self, chunk_size)
 
+    def limit(self, limit):
+        return LimitedDataset(self, limit)
+
 
 class ShuffledChunksDataset(Dataset):
     def __init__(self, dataset, chunk_size):
@@ -45,3 +48,13 @@ class ShuffledChunksDataset(Dataset):
         yield from shuffle_chunks(
             self.underlying.dataset(rng.randint(2 ** 32)), self.chunk_size, rng
         )
+
+
+class LimitedDataset(Dataset):
+    def __init__(self, dataset, limit):
+        super().__init__(dataset.segment)
+        self.underlying = dataset
+        self.limit = limit
+
+    def dataset(self, seed):
+        yield from itertools.islice(self.underlying.dataset(seed), self.limit)
