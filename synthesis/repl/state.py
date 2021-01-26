@@ -16,16 +16,22 @@ class ReplSearchState:
 
     @property
     def done(self):
-        return any(self.spec.program_is_complete(p) for p in self.partial_programs)
+        return any(
+            self.dynamics.program_is_complete(p, self.specification)
+            for p in self.partial_programs
+        )
 
     @property
     def is_goal(self):
-        return any(self.spec.program_is_correct(p) for p in self.partial_programs)
+        return any(
+            self.dynamics.program_is_correct(p, self.specification)
+            for p in self.partial_programs
+        )
 
     def transition(self, action):
         return ReplSearchState(
-            [self.spec.program_class.production(action, self.partial_programs)],
-            self.spec,
+            [self.dynamics.program_class.production(action, self.partial_programs)],
+            self.specification,
             self.dynamics,
         )
 
