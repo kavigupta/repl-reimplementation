@@ -1,4 +1,5 @@
 from ...repl.dynamics import Dynamics
+from ...repl.program import SequentialProgram
 
 from robustfill import RobState, interpret
 
@@ -12,9 +13,13 @@ class RobustfillDynamics(Dynamics):
             state = interpret(tok, state, strict=False)
         return state
 
-    def program_is_correct(self, program):
+    def program_is_correct(self, program, spec):
         executed = self.partially_execute(program, spec)
-        return executed.commited == executed.outputs
+        return executed.committed == executed.outputs
 
-    def program_is_complete(self, program):
-        return False
+    def program_is_complete(self, program, spec):
+        return len(program.tokens) >= 20
+
+    @property
+    def program_class(self):
+        return SequentialProgram

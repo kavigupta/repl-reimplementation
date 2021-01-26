@@ -11,9 +11,14 @@ class Dynamics(ABC):
         pass
 
     @abstractmethod
-    def program_is_complete(self, program):
+    def program_is_complete(self, program, spec):
         pass
 
     @abstractmethod
-    def program_is_correct(self, program):
+    def program_is_correct(self, program, spec):
+        pass
+
+    @property
+    @abstractmethod
+    def program_class(self):
         pass
