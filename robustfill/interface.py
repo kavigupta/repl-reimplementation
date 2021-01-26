@@ -23,5 +23,12 @@ def create_dataset(path, n, min_eg, max_eg):
                 s[i] = generate(np.random.randint(min_eg, max_eg + 1))
 
 
-def interpret(token, state):
-    return interpret_back[token](state)
+def interpret(token, state, strict=True):
+    fn = interpret_back[token]
+    if strict:
+        return fn(state)
+    else:
+        try:
+            return fn(state)
+        except:
+            return state

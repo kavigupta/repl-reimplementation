@@ -9,7 +9,7 @@ class RobustfillDynamics(Dynamics):
         ins, outs = [p.input for p in spec.pairs], [p.output for p in spec.pairs]
         state = RobState.new(ins, outs)
         for tok in program.tokens:
-            state = interpret(tok, state)
+            state = interpret(tok, state, strict=False)
         return state
 
     def program_is_correct(self, program):
