@@ -7,6 +7,7 @@ from more_itertools import chunked
 from ..train import train_generic
 from .state import ReplSearchState
 from ..environment.dataset import Dataset
+from ..utils.utils import load_model
 
 
 @attr.s
@@ -21,6 +22,32 @@ class PretrainDataset(Dataset):
         for spec, program in self.underlying.dataset(seed):
             for pp, a in program.partials:
                 yield (ReplSearchState(pp, spec, self.dynamics), a)
+
+
+@attr.s
+class FinetuneDataset(Dataset):
+    underlying = attr.ib()
+    policy = attr.ib()
+    batch_size = attr.ib(kw_only=True)
+
+    def __attrs_post_init__(self):
+        super().__init__(self.underlying.segment)
+
+    def dataset(self, seed):
+        rng = np.random.RandomState(seed)
+        data = self.underlying.batched_dataset_iter(
+            seed=rng.randint(2 ** 32), batch_size=self.batch_size
+        )
+        for specs, program in data:
+
+            partials = self.policy.roll_forward(specs, rng)
+            for partial in partials:
+                last_state, _ = partial[-1]
+                reward = last_state.is_goal
+                for state, action in partial:
+                    if action is None:
+                        continue
+                    yield (state, action, reward)
 
 
 def pretrain(
@@ -67,48 +94,50 @@ def pretrain(
     )
 
 
-def finetune_step(policy, value, sampler, rng, n=1000, lr=1e-3):
-    data = []
+def finetune(
+    value, data, rng, *, model_path, batch_size, lr, epochs, seed, report_frequency=100
+):
 
-    specs = [sampler(rng)[0] for _ in range(n)]
-    rewards = []
-    for idx, chunk in enumerate(chunked(specs, policy.batch_size)):
-        partials = policy.roll_forward(chunk, rng)
-        for partial in partials:
-            last_state, _ = partial[-1]
-            reward = last_state.is_goal
-            rewards.append(reward)
-            for state, action in partial:
-                if action is None:
-                    continue
-                data.append((state, action, reward))
-    rng.shuffle(data)
+    _, policy = load_model(model_path + "/p")
 
-    optimizer = torch.optim.Adam([*policy.parameters(), *value.parameters()], lr=lr)
+    finetune_data = FinetuneDataset(data, policy, batch_size=10)
 
-    for chunk in chunked(data, policy.batch_size):
-        states, actions, rewards = zip(*chunk)
+    optimizer = None
+
+    def train_fn(policy, value, idx, chunk):
+        nonlocal optimizer
+
+        if optimizer is None:
+            optimizer = torch.optim.Adam(
+                [*policy.parameters(), *value.parameters()], lr=lr
+            )
+
+        states, actions, rewards = chunk
 
         v = value(states)
-        rewards = torch.tensor(rewards).float().to(next(value.parameters()).device)
+        rewards = torch.tensor(rewards).float().to(v.device)
         value_reward = (rewards * v.log() + (1 - rewards) * (1 - v).log()).sum()
+
         dist = policy(states)
         policy_reward = (rewards * dist.log_probability(actions)).sum()
         loss = -(value_reward + policy_reward)
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    return rewards
+        return rewards.mean().item(), loss.item()
 
+    def report_fn(idx, outputs):
+        accs, losses = np.array(outputs).T
+        return f"Reward %: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
 
-def finetune(policy, value, data, rng, *, model_path, **kwargs):
     train_generic(
-        data=data,
-        train_fn=lambda policy, value, idx, chunk: finetune_step(
-            policy, value, chunk, rng, **kwargs, n=len(chunk)
+        data=finetune_data.shuffle_chunks(batch_size * 100).multiple_epochs_iter(
+            batch_size=batch_size, epochs=epochs, seed=seed
         ),
-        report_fn=lambda outs: f"Reward: {outs[0]}",
-        architectures=[policy, value],
+        train_fn=train_fn,
+        report_fn=report_fn,
+        architectures=[lambda: policy, value],
         paths=[model_path + "/pf", model_path + "/vf"],
-        save_frequency=1,
+        save_frequency=report_frequency,
     )
