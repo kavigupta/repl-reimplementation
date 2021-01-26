@@ -29,3 +29,14 @@ pretrain(
     epochs=2,
     seed=0,
 )
+
+finetune(
+    va,
+    data,
+    rng,
+    lr=1e-5,
+    model_path=model_path,
+    batch_size=batch_size,
+    epochs=2,
+    seed=1,
+)
