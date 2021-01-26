@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from itertools import islice
 from more_itertools import chunked
 
 import numpy as np
@@ -57,4 +58,4 @@ class LimitedDataset(Dataset):
         self.limit = limit
 
     def dataset(self, seed):
-        yield from itertools.islice(self.underlying.dataset(seed), self.limit)
+        yield from islice(self.underlying.dataset(seed), self.limit)
