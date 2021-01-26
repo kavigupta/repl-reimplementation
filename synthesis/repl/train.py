@@ -36,8 +36,11 @@ def pretrain(
     seed,
     model_path,
 ):
+    optimizer = None
     def train_fn(policy, idx, chunk):
-        optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
+        nonlocal optimizer
+        if optimizer is None:
+            optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
         states, actions = chunk
         dist = policy(states)
         predictions = dist.mle()
