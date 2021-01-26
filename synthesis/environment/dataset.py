@@ -36,9 +36,10 @@ class Dataset(ABC):
 
 class ShuffledChunksDataset(Dataset):
     def __init__(self, dataset, chunk_size):
-        super().__init__(self, dateset.segment)
-        self.dataset = dataset
+        super().__init__(dataset.segment)
+        self.underlying = dataset
         self.chunk_size = chunk_size
 
     def dataset(self, seed):
-        yield from shuffle_chunks(self.dataset, self.chunk_size, rng)
+        rng = np.random.RandomState(seed)
+        yield from shuffle_chunks(self.underlying.dataset(rng.randint(2 ** 32)), self.chunk_size, rng)
