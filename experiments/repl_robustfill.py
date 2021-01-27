@@ -5,7 +5,7 @@ from synthesis.environment.robustfill.dynamics import RobustfillDynamics
 from synthesis.environment.robustfill.model import RobustfillPolicy, RobustfillValue
 from synthesis.repl.train import pretrain, finetune
 
-model_path = "logdirs/repl_robustfill_4"
+model_path = "logdirs/repl_robustfill_5"
 
 
 data = RobustfillDataset("train")
@@ -34,7 +34,7 @@ finetune(
     va,
     data,
     rng,
-    lr=1e-5,
+    lr=1e-7,
     model_path=model_path,
     batch_size=batch_size,
     epochs=2,
