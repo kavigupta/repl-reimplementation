@@ -62,7 +62,7 @@ class RobustfillValue(nn.Module):
     def forward(self, states):
         embedding = self.embedding(states)
         predictions = self.fcnet(embedding)
-        return predictions
+        return predictions.squeeze(-1)
 
 
 class RobustfillEmbedding(nn.Module):
