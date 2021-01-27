@@ -71,6 +71,7 @@ class RobustfillEmbedding(nn.Module):
         self.alphabet_embedding = nn.Embedding(ALPHABET_SIZE, channels)
         self.masks_embedding = nn.Linear(7, channels)
         self.button_embedding = nn.Embedding(NUM_TOKENS + 1, e)
+        self.error_embedding = nn.Embedding(2, channels)
         self.block_1 = nn.Sequential(
             nn.Conv1d(channels, channels, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -104,8 +105,9 @@ class RobustfillEmbedding(nn.Module):
         all_characters, all_masks, all_buttons = [], [], []
         spec_lengths = []
         button_lengths = []
+        errors = []
         for state in states:
-            [[partial, _ignored_error]] = state.semantic_partial_programs
+            [[partial, error]] = state.semantic_partial_programs
             (
                 inputs,
                 scratch,
@@ -122,14 +124,22 @@ class RobustfillEmbedding(nn.Module):
             )
             all_masks.append(masks.transpose(0, 2, 1))
             all_buttons.append(rendered_past_buttons[:, None])
+            errors.append(
+                np.ones((len(state.specification.pairs), 1), dtype=np.bool) * error
+            )
 
         all_characters = np.concatenate(all_characters, axis=0)
         all_masks = np.concatenate(all_masks, axis=0)
         all_buttons = np.concatenate(all_buttons, axis=0)
+        all_errors = np.concatenate(errors, axis=0)
+
+        all_masks = torch.tensor(all_masks).float().to(self.device)
+        all_errors = torch.tensor(all_errors).long().to(self.device)
 
         spec_embeddings = self.run_embed(self.alphabet_embedding, all_characters)
-        all_masks = torch.tensor(all_masks).float().to(self.device)
         spec_embeddings = spec_embeddings + self.masks_embedding(all_masks)
+        spec_embeddings = spec_embeddings + self.error_embedding(all_errors)
+
         button_embeddings = self.run_embed(self.button_embedding, all_buttons)
 
         spec_embeddings = spec_embeddings.transpose(1, 2)
