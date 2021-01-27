@@ -64,6 +64,7 @@ def pretrain(
     model_path,
 ):
     optimizer = None
+
     def train_fn(policy, idx, chunk):
         nonlocal optimizer
         if optimizer is None:
