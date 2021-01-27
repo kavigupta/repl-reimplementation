@@ -3,6 +3,8 @@ import attr
 import numpy as np
 import torch
 
+import tqdm
+
 
 @attr.s
 class GenerationPhase:
@@ -55,7 +57,7 @@ def particle_filter(
 
     x_vals, weights = prior
     weights = torch.tensor(weights)
-    for obs in observations:
+    for obs in tqdm.tqdm(observations):
         candidates += [x for x in x_vals if categorizer(x).is_candidate]
         extendables = [categorizer(x).is_extendable for x in x_vals]
         weights = weights[extendables]
