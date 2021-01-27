@@ -57,7 +57,12 @@ def particle_filter(
     weights = torch.tensor(weights)
     for obs in observations:
         candidates += [x for x in x_vals if categorizer(x).is_candidate]
-        x_vals = [x for x in x_vals if categorizer(x).is_extendable]
+        extendables = [categorizer(x).is_extendable for x in x_vals]
+        weights = weights[extendables]
+        x_vals = [x for e, x in zip(extendables, x_vals) if e]
+
+        if not x_vals:
+            break
 
         obs_weights = observation_model(x_vals, obs)
         if obs_weights is not None:
