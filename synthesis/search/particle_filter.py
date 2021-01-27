@@ -12,10 +12,6 @@ class GenerationPhase:
     is_extendable = attr.ib()
 
     @classmethod
-    def sequential_program_categorizer(cls, program):
-        return cls(is_candidate=True, is_extendable=True)
-
-    @classmethod
     def loop_program_categorizer(cls, program):
         # assumes 1 is the </s> token
         if program[-1] == 1:
@@ -31,7 +27,7 @@ def particle_filter(
     prior,
     objective,
     *,
-    categorizer=GenerationPhase.sequential_program_categorizer,
+    categorizer,
     rng,
     n_particles
 ):
@@ -106,6 +102,13 @@ def repl_particle_filter(
                 return None
             return value(states)
 
+    def categorizer(st):
+        [p] = st.partial_programs
+        return GenerationPhase(
+            is_candidate=True,
+            is_extendable=not policy.dynamics.program_is_complete(p, spec),
+        )
+
     observations = [None] * max_steps
 
     prior = [policy.initial_state(spec)], [1]
@@ -116,6 +119,7 @@ def repl_particle_filter(
         observations=observations,
         prior=prior,
         objective=objective,
+        categorizer=categorizer,
         rng=rng,
         n_particles=n_particles,
     )[0]
