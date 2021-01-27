@@ -78,7 +78,7 @@ def particle_filter(
         x_vals, weights = transition_model(x_vals, rng)
         weights = torch.tensor(weights)
 
-    return sorted(candidates, key=objective)
+    return sorted(candidates, key=objective, reverse=True)
 
 
 def repl_particle_filter(
@@ -127,4 +127,4 @@ def repl_particle_filter(
         categorizer=categorizer,
         rng=rng,
         n_particles=n_particles,
-    )[0]
+    )
