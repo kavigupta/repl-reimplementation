@@ -92,7 +92,7 @@ def pretrain(
         [policy_arch],
         [model_path + "/p"],
         save_frequency=report_frequency * 10,
-        report_frequency=save_frequency,
+        report_frequency=report_frequency,
     )
 
 
@@ -142,5 +142,5 @@ def finetune(
         architectures=[lambda: policy, value],
         paths=[model_path + "/pf", model_path + "/vf"],
         save_frequency=report_frequency * 10,
-        report_frequency=save_frequency,
+        report_frequency=report_frequency,
     )
