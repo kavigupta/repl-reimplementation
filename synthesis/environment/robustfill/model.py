@@ -105,7 +105,7 @@ class RobustfillEmbedding(nn.Module):
         spec_lengths = []
         button_lengths = []
         for state in states:
-            [partial] = state.semantic_partial_programs
+            [[partial, _ignored_error]] = state.semantic_partial_programs
             (
                 inputs,
                 scratch,
