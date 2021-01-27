@@ -70,8 +70,6 @@ def particle_filter(
             sampler_weights = (weights * obs_weights).numpy()
         else:
             sampler_weights = weights.numpy().astype(np.float32)
-        # print(obs_weights)
-        # print([objective(x) for x in x_vals])
         sampler_weights /= np.sum(sampler_weights)
         indices = rng.choice(sampler_weights.size, p=sampler_weights, size=n_particles)
         x_vals = [x_vals[i] for i in indices]
