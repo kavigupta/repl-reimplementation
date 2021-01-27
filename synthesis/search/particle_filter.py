@@ -9,19 +9,19 @@ class GenerationPhase:
     # whether it can be considered a candidate, e.g., a full executable program
     is_candidate = attr.ib()
     # whether or not it can have more tokens added to it
-    extendable = attr.ib()
+    is_extendable = attr.ib()
 
     @classmethod
     def sequential_program_categorizer(cls, program):
-        return cls(is_candidate=True, extendable=True)
+        return cls(is_candidate=True, is_extendable=True)
 
     @classmethod
     def loop_program_categorizer(cls, program):
         # assumes 1 is the </s> token
         if program[-1] == 1:
-            return cls(is_candidate=True, extendable=False)
+            return cls(is_candidate=True, is_extendable=False)
         else:
-            return cls(is_candidate=False, extendable=True)
+            return cls(is_candidate=False, is_extendable=True)
 
 
 def particle_filter(
