@@ -24,12 +24,15 @@ class GenerationPhase:
             return cls(is_candidate=False, is_extendable=True)
 
 
+OBJECTIVES = dict(is_goal=operator.attrgetter("is_goal"))
+
+
 @attr.s
 class ReplParticleFilter(Search):
     n_particles = attr.ib()
     max_steps = attr.ib(default=100, kw_only=True)
     seed = attr.ib(default=0, kw_only=True)
-    objective = attr.ib(default=operator.attrgetter("is_goal"))
+    objective = attr.ib(default="is_goal")
 
     def __call__(self, m, spec):
         policy, value = m
@@ -39,7 +42,7 @@ class ReplParticleFilter(Search):
             spec,
             max_steps=self.max_steps,
             n_particles=self.n_particles,
-            objective=self.objective,
+            objective=OBJECTIVES[self.objective],
             rng=np.random.RandomState(self.seed),
         )
 
