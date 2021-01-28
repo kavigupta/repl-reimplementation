@@ -124,7 +124,6 @@ def repl_particle_filter(
 ):
     def transition_model(states, rng):
         with torch.no_grad():
-            policy.eval()
             actions = policy(states).sample(rng)
 
         new_states, weights = [], []
@@ -137,7 +136,6 @@ def repl_particle_filter(
         with torch.no_grad():
             if value is None:
                 return None
-            value.eval()
             return value(states)
 
     def categorizer(st):
