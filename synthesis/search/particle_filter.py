@@ -5,8 +5,6 @@ import attr
 import numpy as np
 import torch
 
-import tqdm
-
 from .search import Search
 
 
@@ -81,7 +79,7 @@ def particle_filter(
 
     x_vals, weights = prior
     weights = torch.tensor(weights)
-    for obs in tqdm.tqdm(observations):
+    for obs in observations:
         candidates += [
             (w.item(), x)
             for w, x in zip(weights, x_vals)
