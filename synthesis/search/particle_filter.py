@@ -1,9 +1,13 @@
+import operator
+
 import attr
 
 import numpy as np
 import torch
 
 import tqdm
+
+from .search import Search
 
 
 @attr.s
@@ -20,6 +24,26 @@ class GenerationPhase:
             return cls(is_candidate=True, is_extendable=False)
         else:
             return cls(is_candidate=False, is_extendable=True)
+
+
+@attr.s
+class ReplParticleFilter(Search):
+    n_particles = attr.ib()
+    max_steps = attr.ib(default=100, kw_only=True)
+    seed = attr.ib(default=0, kw_only=True)
+    objective = attr.ib(default=operator.attrgetter("is_goal"))
+
+    def __call__(self, m, spec):
+        policy, value = m
+        return repl_particle_filter(
+            policy,
+            value,
+            spec,
+            max_steps=self.max_steps,
+            n_particles=self.n_particles,
+            objective=self.objective,
+            rng=np.random.RandomState(self.seed),
+        )
 
 
 def particle_filter(
@@ -58,7 +82,11 @@ def particle_filter(
     x_vals, weights = prior
     weights = torch.tensor(weights)
     for obs in tqdm.tqdm(observations):
-        candidates += [x for x in x_vals if categorizer(x).is_candidate]
+        candidates += [
+            (w.item(), x)
+            for w, x in zip(weights, x_vals)
+            if categorizer(x).is_candidate
+        ]
         extendables = [categorizer(x).is_extendable for x in x_vals]
         weights = weights[extendables]
         x_vals = [x for e, x in zip(extendables, x_vals) if e]
@@ -78,7 +106,9 @@ def particle_filter(
         x_vals, weights = transition_model(x_vals, rng)
         weights = torch.tensor(weights)
 
-    return sorted(candidates, key=objective, reverse=True)
+    candidates = [((objective(x), w), x.partial_programs[0]) for w, x in candidates]
+
+    return sorted(candidates, key=operator.itemgetter(0), reverse=True)
 
 
 def repl_particle_filter(
