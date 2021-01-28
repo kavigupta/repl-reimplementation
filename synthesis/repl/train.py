@@ -104,7 +104,7 @@ def finetune(
 
     _, policy = load_model(model_path + "/p")
 
-    finetune_data = FinetuneDataset(data, policy, batch_size=10)
+    finetune_data = FinetuneDataset(data, policy, batch_size=batch_size)
 
     optimizer = None
 
@@ -120,6 +120,8 @@ def finetune(
 
         v = value(states)
         rewards = torch.tensor(rewards).float().to(v.device)
+        original_reward_mean = rewards.mean()
+        rewards = rewards - rewards.mean()
         value_reward = (rewards * v.log() + (1 - rewards) * (1 - v).log()).sum()
 
         dist = policy(states)
@@ -129,11 +131,11 @@ def finetune(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        return rewards.mean().item(), loss.item()
+        return original_reward_mean.item(), policy_reward.item(), value_reward.item()
 
     def report_fn(idx, outputs):
-        accs, losses = np.array(outputs).T
-        return f"Reward %: {np.mean(accs) * 100:.02f}% Loss: {np.mean(losses)}"
+        accs, pol_rew, val_rew = np.array(outputs).T
+        return f"Reward: {np.mean(accs) * 100:.02f}% Policy reward: {np.mean(pol_rew)} Value reward: {np.mean(val_rew)}"
 
     train_generic(
         data=finetune_data.shuffle_chunks(batch_size * 100).multiple_epochs_iter(
