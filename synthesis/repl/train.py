@@ -42,9 +42,11 @@ class FinetuneDataset(Dataset):
 
             partials = self.policy.roll_forward(specs, rng)
             for partial in partials:
-                last_state, _ = partial[-1]
-                reward = last_state.is_goal
-                for state, action in partial:
+                is_goal, _, last_state_idx = max(
+                    [(st.is_goal, not st.done, i) for i, (st, _) in enumerate(partial)]
+                )
+                reward = is_goal
+                for state, action in partial[:last_state_idx]:
                     if action is None:
                         continue
                     yield (state, action, reward)
