@@ -15,7 +15,7 @@ class Program(ABC):
         pass
 
 
-@attr.s
+@attr.s(hash=True)
 class SequentialProgram(Program):
     tokens = attr.ib()
 

@@ -28,7 +28,7 @@ class RobustfillPolicy(nn.Module, Policy):
 
     @property
     def initial_program_set(self):
-        return [SequentialProgram([])]
+        return [SequentialProgram(())]
 
     def forward(self, states):
         embedding = self.embedding(states)

@@ -21,4 +21,4 @@ class RobustfillDataset(Dataset):
         for i in indices:
             program, inputs, outputs = self.data[str(i)]
             spec = [Pair(inp, out) for inp, out in zip(inputs, outputs)]
-            yield Specification(spec[:-1], spec[-1:]), SequentialProgram(program)
+            yield Specification(spec[:-1], spec[-1:]), SequentialProgram(tuple(program))
