@@ -10,35 +10,38 @@ from synthesis.search.search import infer
 from synthesis.search.particle_filter import ReplParticleFilter
 
 
-def split_prog(p, *, min_segments, max_segments):
-    seed = int(hashlib.sha256(str(p).encode("utf-8")).hexdigest(), 16) % 2 ** 32
-    rng = np.random.RandomState(seed)
+def chunk_prog(p):
     progs = [[]]
     for tok in p.tokens:
         progs[-1].append(tok)
-        if tok == "Commit" and rng.rand():
+        if tok == "Commit":
             progs.append([])
     if progs[-1] == []:
         progs.pop()
+    return progs
 
-    num_splits = rng.choice(max_segments - min_segments + 1) + min_segments - 1
 
-    split_points = list(range(1, len(progs)))
-    num_splits = min(num_splits, len(split_points))
-
-    chosen_split_points = set(rng.choice(split_points, size=num_splits, replace=False))
-
+def chunks_to_split(progs, split_points):
+    split_points = set(split_points)
     new_progs = [[]]
     for i, prog in enumerate(progs):
-        if i in chosen_split_points:
+        if i in split_points:
             new_progs.append([])
         new_progs[-1] += prog
 
     return [SequentialProgram(tuple(p)) for p in new_progs]
 
 
-def split_spec(p, spec, **split_args):
-    sps = split_prog(p, **split_args)
+def all_splits_prog(p):
+    progs = chunk_prog(p)
+
+    if len(progs) == 1:
+        return [chunks_to_split(progs, set())]
+    else:
+        return [chunks_to_split(progs, {i}) for i in range(1, len(progs))]
+
+
+def split_spec(sps, spec):
 
     split_specs = []
     inputs, inputs_test = [p.input for p in spec.pairs], [
@@ -53,35 +56,49 @@ def split_spec(p, spec, **split_args):
                 [Pair(i, o) for i, o in zip(inputs_test, outputs_test)],
             )
         )
-    return split_specs, sps
+    return split_specs
 
 
 def split_effectiveness(
-    policy, value, prog, spec, n, split_strategy="proportional", **split_args
+    policy,
+    value,
+    prog,
+    spec,
+    n,
+    split_strategy="proportional",
+    choice_strategy="random",
 ):
-    sss, sps = split_spec(prog, spec, **split_args)
-    overall_result = evaluate(
-        RobustfillExecutor(),
-        infer(ReplParticleFilter(n), (policy, value), spec)[0][1],
-        spec,
-        use_test=True,
-    )
-    overall_result = overall_result["correct"] == overall_result["total"]
+    def _eval(n, s):
+        _, p = infer(ReplParticleFilter(n), (policy, value), s)[0]
+        result = evaluate(RobustfillExecutor(), p, s, use_test=True)
+        return result["correct"] == result["total"]
+
+    sps = all_splits_prog(prog)
+
+    if choice_strategy == "random":
+        seed = int(hashlib.sha256(str(prog).encode("utf-8")).hexdigest(), 16) % 2 ** 32
+        rng = np.random.RandomState(seed)
+        sps = [sps[rng.choice(len(sps))]]
+    elif choice_strategy == "all":
+        pass
+    else:
+        raise RuntimeError(f"Choice strategy {choice_strategy}")
+
+    overall_result = _eval(n, spec)
     split_results = []
-    for ss, sp in zip(sss, sps):
 
-        n_sub = {
-            "proportional": int(n * len(sp.tokens) / len(prog.tokens)),
-            "same": n // len(sps),
-        }[split_strategy]
+    for sps in sps:
+        split_results_current = []
+        sss = split_spec(sps, spec)
 
-        result = evaluate(
-            RobustfillExecutor(),
-            infer(ReplParticleFilter(n_sub), (policy, value), ss,)[
-                0
-            ][1],
-            ss,
-            use_test=True,
-        )
-        split_results.append(result["correct"] == result["total"])
+        for ss, sp in zip(sss, sps):
+
+            n_sub = {
+                "proportional": int(n * len(sp.tokens) / len(prog.tokens)),
+                "same": n // len(sps),
+            }[split_strategy]
+
+            split_results_current.append(_eval(n_sub, ss))
+
+        split_results.append(split_results_current)
     return overall_result, split_results
