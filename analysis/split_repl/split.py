@@ -72,8 +72,8 @@ def split_effectiveness(
 
         n_sub = {
             "proportional": int(n * len(sp.tokens) / len(prog.tokens)),
-            "equal": n // len(sps),
-        }[split_stratgey]
+            "same": n // len(sps),
+        }[split_strategy]
 
         result = evaluate(
             RobustfillExecutor(),
