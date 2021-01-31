@@ -67,9 +67,11 @@ def split_effectiveness(
     n,
     split_strategy="proportional",
     choice_strategy="random",
+    seed=0,
+    evaluate_overall=True,
 ):
     def _eval(n, s):
-        _, p = infer(ReplParticleFilter(n), (policy, value), s)[0]
+        _, p = infer(ReplParticleFilter(n, seed=seed), (policy, value), s)[0]
         result = evaluate(RobustfillExecutor(), p, s, use_test=True)
         return result["correct"] == result["total"]
 
@@ -81,10 +83,12 @@ def split_effectiveness(
         sps = [sps[rng.choice(len(sps))]]
     elif choice_strategy == "all":
         pass
+    elif isinstance(choice_strategy, list) and len(choice_strategy) == len(sps):
+        sps = [sps[i] for i, b in enumerate(choice_strategy) if b]
     else:
         raise RuntimeError(f"Choice strategy {choice_strategy}")
 
-    overall_result = _eval(n, spec)
+    overall_result = _eval(n, spec) if evaluate_overall else None
     split_results = []
 
     for sps in sps:
