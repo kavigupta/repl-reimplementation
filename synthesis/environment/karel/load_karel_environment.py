@@ -105,8 +105,11 @@ class KarelDataset(Dataset):
         dataset = KarelDataFile(self.path_prefix)
         dataset.shuffle(seed)
         for spec, program in dataset:
-            program = [self.ba[tok] + 2 for tok in program]
+            program = self.translate_forward(program)
             yield spec, program
+
+    def translate_forward(self, program):
+        return [self.ba[tok] + 2 for tok in program]
 
     def translate_back(self, tokens):
         return [number_to_token(self.fo, tok) for tok in tokens]
