@@ -14,7 +14,7 @@ supervised_training(
     architectures=[
         lambda: LGRL(KarelRecurrentSpecEncoder(embedding_size=256), embedding_size=256)
     ],
-    paths=["logdirs/lgrl-karel-recurrent"],
-    save_frequency=200,
+    paths=["logdirs/lgrl-karel-recurrent-2"],
+    save_frequency=2000,
     report_frequency=20,
 )
