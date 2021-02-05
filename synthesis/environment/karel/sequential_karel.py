@@ -58,7 +58,7 @@ def randomly_sample_spec(*args, **kwargs):
 
 
 class KarelSequentialDataset(Dataset):
-    def __init__(self, segment, size, path="data/karel_standard"):
+    def __init__(self, segment, size, path="data/karel_standard", limit=float("inf")):
         super().__init__(segment)
         self.size = size
         self.underlying = KarelDataset(segment, path=path).datafile
@@ -68,10 +68,11 @@ class KarelSequentialDataset(Dataset):
         except FileExistsError:
             pass
         self.shelf = shelve.open(os.path.join(prefix, f"{segment}_{size}"))
+        self.limit = min(len(self.underlying), limit)
 
     def dataset(self, seed, pbar=lambda x: x):
         rng = np.random.RandomState(seed)
-        for index in pbar(range(len(self.underlying))):
+        for index in pbar(range(self.limit)):
             index = str(index)
             round_seed = rng.choice(2 ** 32)
             if index not in self.shelf:
