@@ -95,6 +95,10 @@ class KarelDataset(Dataset):
         self.ba = read_vocab()
         self.fo = {v: k for k, v in self.ba.items()}
 
+    @property
+    def datafile(self):
+        return KarelDataFile(self.path_prefix)
+
     def dataset(self, seed):
         """
         Iterate through the dataset yielding spec, program pairs.
@@ -102,7 +106,7 @@ class KarelDataset(Dataset):
         Arguments:
             segment: the segment to use, must be 'train' or 'test'
         """
-        dataset = KarelDataFile(self.path_prefix)
+        dataset = self.datafile
         dataset.shuffle(seed)
         for spec, program in dataset:
             program = self.translate_forward(program)
