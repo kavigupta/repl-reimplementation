@@ -9,7 +9,7 @@ from karel_for_synthesis import (
 )
 
 from ..executor import Executor, ExecutionError
-from .load_karel_environment import read_vocab, number_to_token
+from .standard_karel import read_vocab, number_to_token
 
 
 @attr.s

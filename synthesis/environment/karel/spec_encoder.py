@@ -5,7 +5,7 @@ import torch.nn as nn
 from ...lgrl import AttentionalSpecEncoder, RecurrentSpecEncoder
 from ...utils.utils import JaggedEmbeddings, PaddedSequence, PositionalEncoding, place
 
-from .load_karel_environment import GRID_SIZE
+from .standard_karel import GRID_SIZE
 
 
 class KarelSpecEncoder(AttentionalSpecEncoder):

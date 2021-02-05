@@ -4,7 +4,7 @@ import torch
 from synthesis.lgrl import LGRL
 from synthesis.environment.karel.spec_encoder import KarelRecurrentSpecEncoder
 
-from synthesis.environment.karel.load_karel_environment import KarelDataset
+from synthesis.environment.karel.standard_karel import KarelDataset
 from synthesis.train import supervised_training
 
 
