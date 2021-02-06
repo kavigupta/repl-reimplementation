@@ -8,7 +8,7 @@ from synthesis.environment.karel.sequential_model import KarelSequentialPolicy
 model_path = "logdirs/repl_karel_1"
 
 
-data = KarelSequentialDataset("train", 8, limit=10)
+data = KarelSequentialDataset("train", 8, limit=250_000)
 dynamics = KarelDynamics()
 
 pa = lambda: KarelSequentialPolicy().cuda()
@@ -16,7 +16,7 @@ pa = lambda: KarelSequentialPolicy().cuda()
 rng = np.random.RandomState(0)
 
 
-batch_size = 3
+batch_size = 1024
 
 pretrain(
     pa,
