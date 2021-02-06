@@ -11,6 +11,7 @@ from ...repl.program import SequentialProgram
 from .standard_karel import KarelDataset
 
 TOKENS = ["move", "turnRight", "turnLeft", "pickMarker", "putMarker"]
+TOKEN_TO_INDEX = {tok: idx for idx, tok in enumerate(TOKENS)}
 
 
 def random_input(data, rng):
