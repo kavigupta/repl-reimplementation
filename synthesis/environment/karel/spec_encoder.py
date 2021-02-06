@@ -67,24 +67,19 @@ class KarelTaskEncoder(nn.Module):
     Instead of embedding the data, it just serializes it instead.
     """
 
-    def __init__(self, image_size, embedding_size):
+    def __init__(self, image_size, embedding_size, num_grids=2):
         super().__init__()
 
         self.e = embedding_size
+        self.num_grids = num_grids
         c, w, h = image_size
         assert self.e % 2 == 0
 
         self.image_size = image_size
 
-        self.input_encoder = nn.Sequential(
+        self.grids_encoder = nn.Sequential(
             nn.Conv2d(
-                in_channels=c, out_channels=self.e // 2, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-        )
-        self.output_encoder = nn.Sequential(
-            nn.Conv2d(
-                in_channels=c, out_channels=self.e // 2, kernel_size=3, padding=1
+                in_channels=num_grids * c, out_channels=self.e, kernel_size=3, padding=1
             ),
             nn.ReLU(),
         )
@@ -128,17 +123,23 @@ class KarelTaskEncoder(nn.Module):
             )
             flat_specs += spec.pairs
 
-        input_grid = place(self, torch.tensor([fs.input for fs in flat_specs]))
-        output_grid = place(self, torch.tensor([fs.output for fs in flat_specs]))
+        input_grid = [fs.input for fs in flat_specs]
+        output_grid = [fs.output for fs in flat_specs]
 
-        assert len(input_grid.shape) == 4
-        assert self.image_size == input_grid.shape[-3:]
+        return self.run_on_grids(input_grid, output_grid)
 
-        input_enc = self.input_encoder(input_grid)
-        output_enc = self.output_encoder(output_grid)
+    def run_on_grids(self, *grids):
+        assert set(grid.shape[-3:] for grid in grids) == {self.image_size}
+        assert len(grids) == self.num_grids
 
-        enc = torch.cat([input_enc, output_enc], 1)
+        grids = np.concatenate(grids, axis=-3)
+        assert len(grids.shape) == 4
+
+        grids = place(self, torch.tensor(grids))
+
+        enc = self.grids_encoder(grids)
+
         enc = enc + self.block_1(enc)
         enc = enc + self.block_2(enc)
 
-        return enc, indices
+        return enc
