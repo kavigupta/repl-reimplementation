@@ -71,10 +71,12 @@ class KarelSequentialDataset(Dataset):
         self.limit = min(len(self.underlying), limit)
 
     def dataset(self, seed, pbar=lambda x: x):
-        rng = np.random.RandomState(seed)
-        for index in pbar(range(self.limit)):
+        shuffled_idxs = list(range(self.limit))
+        np.random.RandomState(seed).shuffle(shuffled_idxs)
+        # just a standardized pseudorandom scheme
+        seeds = np.random.RandomState(0).randint(2 ** 32, size=self.limit)
+        for index, round_seed in pbar(list(zip(shuffled_idxs, seeds))):
             index = str(index)
-            round_seed = rng.choice(2 ** 32)
             if index not in self.shelf:
                 self.shelf[index] = randomly_sample_spec(
                     self.underlying, np.random.RandomState(round_seed), size=16
