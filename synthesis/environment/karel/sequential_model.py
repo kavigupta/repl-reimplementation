@@ -28,7 +28,7 @@ class KarelSequentialEmbedding(nn.Module):
             [current] = s.semantic_partial_programs
             lengths.append(len(pairs))
             ins += [p.input for p in pairs]
-            outs += [p.output.result for p in pairs]
+            outs += [p.output for p in pairs]
             currents += current
 
         ins, outs, currents = np.array(ins), np.array(outs), np.array(currents)

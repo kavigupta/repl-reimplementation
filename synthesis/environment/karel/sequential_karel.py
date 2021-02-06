@@ -8,7 +8,7 @@ from karel_for_synthesis import execute, unparse, ExecutorRuntimeException
 from ..dataset import Dataset
 from ..spec import Pair, Specification
 from ...repl.program import SequentialProgram
-from .standard_karel import KarelDataset
+from .standard_karel import KarelDataset, get_one_hot, from_one_hot
 
 TOKENS = ["move", "turnRight", "turnLeft", "pickMarker", "putMarker"]
 TOKEN_TO_INDEX = {tok: idx for idx, tok in enumerate(TOKENS)}
@@ -25,7 +25,7 @@ def random_compatible_input(data, program, rng, max_steps=100):
     for _ in range(max_steps):
         inp = random_input(data, rng)
         try:
-            return Pair(inp, execute(program, inp))
+            return Pair(inp, execute(program, inp).result)
         except ExecutorRuntimeException:
             pass
 
@@ -48,7 +48,7 @@ def _randomly_sample_spec_once(data, rng, *, size, train=5, test=1):
         if pair is None:
             return
         pairs.append(pair)
-    return toks, Specification(pairs[:train], pairs[train:])
+    return Specification(pairs[:train], pairs[train:]), toks
 
 
 def randomly_sample_spec(*args, **kwargs):
@@ -79,8 +79,21 @@ class KarelSequentialDataset(Dataset):
         for index, round_seed in pbar(list(zip(shuffled_idxs, seeds))):
             index = str(index)
             if index not in self.shelf:
-                self.shelf[index] = randomly_sample_spec(
-                    self.underlying, np.random.RandomState(round_seed), size=16
+                self.shelf[index] = self._pack(
+                    *randomly_sample_spec(
+                        self.underlying, np.random.RandomState(round_seed), size=16
+                    )
                 )
-            p, spec = self.shelf[index]
-            yield spec, p
+            yield self._unpack(*self.shelf[index])
+
+    def _pack(self, spec, p):
+        packed_spec = spec.map_pairs(
+            lambda x: Pair(from_one_hot(x.input), from_one_hot(x.output))
+        )
+        return packed_spec, p
+
+    def _unpack(self, spec, p):
+        unpacked_spec = spec.map_pairs(
+            lambda x: Pair(get_one_hot(x.input), get_one_hot(x.output))
+        )
+        return unpacked_spec, p

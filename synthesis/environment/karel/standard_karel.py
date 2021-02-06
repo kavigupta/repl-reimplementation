@@ -72,6 +72,10 @@ def get_one_hot(indices):
     return grid
 
 
+def from_one_hot(grid):
+    return np.where(grid.flatten())[0]
+
+
 def read_index(filename):
     index = []
     with open(filename, "rb") as index_file:
