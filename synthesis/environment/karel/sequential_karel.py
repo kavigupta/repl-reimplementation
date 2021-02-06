@@ -81,4 +81,5 @@ class KarelSequentialDataset(Dataset):
                 self.shelf[index] = randomly_sample_spec(
                     self.underlying, np.random.RandomState(round_seed), size=16
                 )
-            yield self.shelf[index]
+            p, spec = self.shelf[index]
+            yield spec, p
