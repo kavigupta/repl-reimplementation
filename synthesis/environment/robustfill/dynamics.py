@@ -15,6 +15,9 @@ class RobustfillDynamics(Dynamics):
             err_overall = err_overall or err
         return state, err_overall
 
+    def partially_execute_pair(self, program, pair):
+        return super().partially_execute_pair(program, pair)
+
     def program_is_correct(self, program, spec):
         executed, error = self.partially_execute(program, spec)
         return not error and executed.committed == executed.outputs

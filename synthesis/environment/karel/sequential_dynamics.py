@@ -11,10 +11,10 @@ class KarelDynamics(Dynamics):
     size = attr.ib()
 
     def partially_execute(self, program, spec):
-        return [
-            execute(toks_to_program(program.tokens), pair.input).result
-            for pair in spec.pairs
-        ]
+        return super().partially_execute(program, spec)
+
+    def partially_execute_pair(self, program, pair):
+        return execute(toks_to_program(program.tokens), pair.input).result
 
     def program_is_correct(self, program, spec):
         executed = self.partially_execute(program, spec)
