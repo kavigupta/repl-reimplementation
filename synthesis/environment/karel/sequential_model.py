@@ -4,6 +4,7 @@ import numpy as np
 from .standard_karel import GRID_SIZE
 
 from ...repl.policy import Policy
+from ...repl.program import SequentialProgram
 from ...utils.utils import JaggedEmbeddings
 from ...utils.distribution import IndependentDistribution
 
