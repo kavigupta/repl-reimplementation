@@ -32,7 +32,10 @@ def frozen_hash(m):
     return traverse(m, leaf, stable_hash, stable_hash)
 
 
-@permacache("synthesis/search", key_function=dict(m=frozen_hash, spec=stable_hash))
+@permacache(
+    "synthesis/search",
+    key_function=dict(m=frozen_hash, spec=lambda x: stable_hash(x, fast_bytes=True)),
+)
 def infer(search, m, spec):
     traverse(m, lambda x: x.eval(), lambda x: None, lambda x: None)
     with torch.no_grad():
