@@ -17,23 +17,22 @@ class KarelSequentialEmbedding(nn.Module):
     def __init__(self, channels=64, e=512):
         super().__init__()
         self.embedding = KarelTaskEncoder(
-            image_size=GRID_SIZE, embedding_size=channels, num_grids=3
+            image_size=GRID_SIZE, embedding_size=channels, num_grids=2
         )
         self.embed = nn.Linear(channels * GRID_SIZE[1] * GRID_SIZE[2], e)
 
     def forward(self, states):
-        ins, outs, currents = [], [], []
+        outs, currents = [], []
         lengths = []
         for s in states:
             pairs = s.specification.pairs
             [current] = s.semantic_partial_programs
             lengths.append(len(pairs))
-            ins += [p.input for p in pairs]
             outs += [p.output for p in pairs]
             currents += current
 
-        ins, outs, currents = np.array(ins), np.array(outs), np.array(currents)
-        embedding = self.embedding.run_on_grids(ins, outs, currents)
+        currents, outs = np.array(currents), np.array(outs)
+        embedding = self.embedding.run_on_grids(currents, outs)
         embedding = embedding.reshape(embedding.shape[0], -1)
         embedding = self.embed(embedding)
         embedding = JaggedEmbeddings.consecutive(embedding, lengths).max_pool()
@@ -43,7 +42,7 @@ class KarelSequentialEmbedding(nn.Module):
 class KarelSequentialPolicy(nn.Module, Policy):
     def __init__(self, channels=64, e=512, **kwargs):
         super().__init__()
-        self.sequential_embedding = KarelSequentialEmbedding(channels, e)
+        self.sequential_embedding = KarelSequentialEmbedding(channels, e, **kwargs)
         self.output = nn.Linear(e, len(TOKENS))
 
     @property
@@ -68,3 +67,23 @@ class KarelSequentialPolicy(nn.Module, Policy):
             dict(token_idx=predictions),
             getattr=get,
         )
+
+
+class KarelSequentialValue(nn.Module):
+    def __init__(self, policy, e=512):
+        super().__init__()
+        self.sequential_embedding = policy.sequential_embedding
+        self.network = nn.Sequential(
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, states):
+        embedding = self.sequential_embedding(states)
+        return self.network(embedding)
