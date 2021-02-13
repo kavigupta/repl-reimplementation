@@ -45,7 +45,7 @@ def train_decomposer(
         nonlocal optimizer
         if optimizer is None:
             optimizer = torch.optim.Adam(decomposer.parameters(), lr=lr)
-        with torch.no_grad()
+        with torch.no_grad():
             ins, outs, inters = [policy.embedding_net(grids) for grids in chunk]
         inters_pred = decomposer(ins, outs)
         assert inters.indices_for_each == inters_pred.indices_for_each
