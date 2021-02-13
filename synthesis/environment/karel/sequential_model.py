@@ -82,6 +82,11 @@ class KarelSequentialPolicy(nn.Module, Policy):
             getattr=get,
         )
 
+    def embedding_net(self, grids):
+        flat_grids = np.array([g for gs in grids for g in gs])
+        embeddings = self.sequential_embedding.embed(flat_grids)
+        return JaggedEmbeddings.consecutive(embeddings, [len(x) for x in grids])
+
 
 class KarelSequentialValue(nn.Module):
     def __init__(self, policy, e=1024):
