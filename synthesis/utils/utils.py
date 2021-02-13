@@ -187,6 +187,19 @@ class PaddedSequence:
         mask[batch_idxs_o, shifted_seq_idxs_o] = 1
         return PaddedSequence(sequences, mask)
 
+    def self_attn(self, transformer):
+        src_tgt = self.sequences.transpose(0, 1)
+        embedding = transformer(
+            src_tgt,
+            src_tgt,
+            src_key_padding_mask=~self.mask,
+            tgt_key_padding_mask=~self.mask,
+        )
+        return PaddedSequence(embedding.transpose(0, 1), self.mask)
+
+    def flatten(self):
+        return self.sequences[self.mask]
+
 
 def split_indices(segment, split, dataset_size):
     test_indices = np.random.RandomState(0).rand(dataset_size) < split
