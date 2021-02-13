@@ -64,6 +64,13 @@ class JaggedEmbeddings:
             start += length
         return cls(embeddings, indices_each)
 
+    @classmethod
+    def cat_along_embedding(cls, *elements):
+        indices_each = [element.indices_for_each for element in elements]
+        for i in indices_each[1:]:
+            assert i == indices_each[0]
+        return cls(torch.cat([e.embeddings for e in elements], dim=1), indices_each[0])
+
     embeddings = attr.ib()
     indices_for_each = attr.ib()
 
