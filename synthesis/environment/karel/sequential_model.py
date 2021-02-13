@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import numpy as np
 
@@ -17,9 +18,15 @@ class KarelSequentialEmbedding(nn.Module):
     def __init__(self, channels=64, e=512):
         super().__init__()
         self.embedding = KarelTaskEncoder(
-            image_size=GRID_SIZE, embedding_size=channels, num_grids=2
+            image_size=GRID_SIZE, embedding_size=channels, num_grids=1
         )
-        self.embed = nn.Linear(channels * GRID_SIZE[1] * GRID_SIZE[2], e)
+        self.project = nn.Linear(channels * GRID_SIZE[1] * GRID_SIZE[2], e)
+
+    def embed(self, grids):
+        embedding = self.embedding.run_on_grids(grids)
+        embedding = embedding.reshape(embedding.shape[0], -1)
+        embedding = self.project(embedding)
+        return embedding
 
     def forward(self, states):
         outs, currents = [], []
@@ -32,18 +39,25 @@ class KarelSequentialEmbedding(nn.Module):
             currents += current
 
         currents, outs = np.array(currents), np.array(outs)
-        embedding = self.embedding.run_on_grids(currents, outs)
-        embedding = embedding.reshape(embedding.shape[0], -1)
-        embedding = self.embed(embedding)
+        embedding_current, embedding_out = self.embed(currents), self.embed(outs)
+        embedding = torch.cat([embedding_current, embedding_out], dim=-1)
         embedding = JaggedEmbeddings.consecutive(embedding, lengths).max_pool()
         return embedding
 
 
 class KarelSequentialPolicy(nn.Module, Policy):
-    def __init__(self, channels=64, e=512, **kwargs):
+    def __init__(self, channels=64, e=1024, **kwargs):
         super().__init__()
-        self.sequential_embedding = KarelSequentialEmbedding(channels, e, **kwargs)
-        self.output = nn.Linear(e, len(TOKENS))
+        self.sequential_embedding = KarelSequentialEmbedding(channels, e // 2, **kwargs)
+        self.net = nn.Sequential(
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, len(TOKENS)),
+        )
 
     @property
     def dynamics(self):
@@ -55,7 +69,7 @@ class KarelSequentialPolicy(nn.Module, Policy):
 
     def forward(self, states):
         embedding = self.sequential_embedding(states)
-        predictions = self.output(embedding)
+        predictions = self.net(embedding)
         predictions = predictions.log_softmax(-1)
 
         def get(token, attr):
@@ -70,7 +84,7 @@ class KarelSequentialPolicy(nn.Module, Policy):
 
 
 class KarelSequentialValue(nn.Module):
-    def __init__(self, policy, e=512):
+    def __init__(self, policy, e=1024):
         super().__init__()
         self.sequential_embedding = policy.sequential_embedding
         self.network = nn.Sequential(
