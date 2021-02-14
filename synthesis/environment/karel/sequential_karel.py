@@ -81,7 +81,9 @@ class KarelSequentialDataset(Dataset):
             if index not in self.shelf:
                 self.shelf[index] = self._pack(
                     *randomly_sample_spec(
-                        self.underlying, np.random.RandomState(round_seed), size=16
+                        self.underlying,
+                        np.random.RandomState(round_seed),
+                        size=self.size,
                     )
                 )
             yield self._unpack(*self.shelf[index])
