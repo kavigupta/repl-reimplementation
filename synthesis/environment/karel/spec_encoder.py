@@ -84,34 +84,8 @@ class KarelTaskEncoder(nn.Module):
             nn.ReLU(),
         )
 
-        self.block_1 = nn.Sequential(
-            nn.Conv2d(
-                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-            nn.Conv2d(
-                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-            nn.Conv2d(
-                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-        )
-        self.block_2 = nn.Sequential(
-            nn.Conv2d(
-                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-            nn.Conv2d(
-                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-            nn.Conv2d(
-                in_channels=self.e, out_channels=self.e, kernel_size=3, padding=1
-            ),
-            nn.ReLU(),
-        )
+        self.block_1 = karel_block(self.e)
+        self.block_2 = karel_block(self.e)
 
     def forward(self, specifications):
 
@@ -143,3 +117,14 @@ class KarelTaskEncoder(nn.Module):
         enc = enc + self.block_2(enc)
 
         return enc
+
+
+def karel_block(e):
+    return nn.Sequential(
+        nn.Conv2d(in_channels=e, out_channels=e, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.Conv2d(in_channels=e, out_channels=e, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.Conv2d(in_channels=e, out_channels=e, kernel_size=3, padding=1),
+        nn.ReLU(),
+    )
