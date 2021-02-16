@@ -18,12 +18,12 @@ class KarelSequentialEmbedding(nn.Module):
     def __init__(self, channels=64, e=512):
         super().__init__()
         self.embedding = KarelTaskEncoder(
-            image_size=GRID_SIZE, embedding_size=channels, num_grids=1
+            image_size=GRID_SIZE, embedding_size=channels, num_grids=2
         )
         self.project = nn.Linear(channels * GRID_SIZE[1] * GRID_SIZE[2], e)
 
-    def embed(self, grids):
-        embedding = self.embedding.run_on_grids(grids)
+    def embed(self, inputs, outputs):
+        embedding = self.embedding.run_on_grids(inputs, outputs)
         embedding = embedding.reshape(embedding.shape[0], -1)
         embedding = self.project(embedding)
         return embedding
@@ -39,16 +39,15 @@ class KarelSequentialEmbedding(nn.Module):
             currents += current
 
         currents, outs = np.array(currents), np.array(outs)
-        embedding_current, embedding_out = self.embed(currents), self.embed(outs)
-        embedding = torch.cat([embedding_current, embedding_out], dim=-1)
+        embedding = self.embed(currents, outs)
         embedding = JaggedEmbeddings.consecutive(embedding, lengths).max_pool()
         return embedding
 
 
 class KarelSequentialPolicy(nn.Module, Policy):
-    def __init__(self, channels=64, e=1024, **kwargs):
+    def __init__(self, channels=64, e=512, **kwargs):
         super().__init__()
-        self.sequential_embedding = KarelSequentialEmbedding(channels, e // 2, **kwargs)
+        self.sequential_embedding = KarelSequentialEmbedding(channels, e, **kwargs)
         self.net = nn.Sequential(
             nn.Linear(e, e),
             nn.ReLU(),
@@ -82,14 +81,15 @@ class KarelSequentialPolicy(nn.Module, Policy):
             getattr=get,
         )
 
-    def embedding_net(self, grids):
-        flat_grids = np.array([g for gs in grids for g in gs])
-        embeddings = self.sequential_embedding.embed(flat_grids)
-        return JaggedEmbeddings.consecutive(embeddings, [len(x) for x in grids])
+    def embedding_net(self, pairs):
+        flat_inputs = np.array([p.input for ps in pairs for p in ps])
+        flat_outputs = np.array([p.output for ps in pairs for p in ps])
+        embeddings = self.sequential_embedding.embed(flat_inputs, flat_outputs)
+        return JaggedEmbeddings.consecutive(embeddings, [len(x) for x in pairs])
 
 
 class KarelSequentialValue(nn.Module):
-    def __init__(self, policy, e=1024):
+    def __init__(self, policy, e=512):
         super().__init__()
         self.sequential_embedding = policy.sequential_embedding
         self.network = nn.Sequential(
