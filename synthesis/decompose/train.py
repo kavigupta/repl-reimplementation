@@ -5,7 +5,6 @@ import torch
 import numpy as np
 
 from ..environment.dataset import Dataset
-from ..environment.spec import Pair
 from ..train import train_generic
 
 
@@ -46,17 +45,11 @@ def train_decomposer(
         nonlocal optimizer
         if optimizer is None:
             optimizer = torch.optim.Adam(decomposer.parameters(), lr=lr)
-        ins, outs, inters = chunk
         with torch.no_grad():
-            specs = policy.embedding_net(
-                [[Pair(i, o) for i, o in zip(is_, os)] for is_, os in zip(ins, outs)]
-            )
-            specs_inters = policy.embedding_net(
-                [[Pair(i, o) for i, o in zip(is_, os)] for is_, os in zip(ins, inters)]
-            )
-        specs_inters_pred = decomposer(specs)
-        assert specs_inters_pred.indices_for_each == specs_inters.indices_for_each
-        loss = ((specs_inters_pred.embeddings - specs_inters.embeddings) ** 2).mean()
+            ins, outs, inters = [policy.embedding_net(grids) for grids in chunk]
+        inters_pred = decomposer(ins, outs)
+        assert inters.indices_for_each == inters_pred.indices_for_each
+        loss = ((inters_pred.embeddings - inters.embeddings) ** 2).mean()
         loss.backward()
         optimizer.step()
         return loss.item()
