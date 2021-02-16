@@ -18,7 +18,7 @@ from synthesis.decompose.oracle_decomposer import (
 model_path = "logdirs/repl_karel_5"
 
 
-data = KarelSequentialDataset("train", 8, limit=250_000)
+data = KarelSequentialDataset("train", 8, limit=2_000_000)
 dynamics = KarelDynamics()
 
 pa = lambda: KarelSequentialPolicy().cuda()
