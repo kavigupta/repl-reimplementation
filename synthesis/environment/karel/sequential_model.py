@@ -82,9 +82,9 @@ class KarelSequentialPolicy(nn.Module, Policy):
         )
 
     def embedding_net(self, pairs):
-        flat_inputs = np.array([p.input for ps in pairs for p in ps])
-        flat_outputs = np.array([p.output for ps in pairs for p in ps])
-        embeddings = self.sequential_embedding.embed(flat_inputs, flat_outputs)
+        inputs = np.array([p.input for ps in pairs for p in ps])
+        outputs = np.array([p.output for ps in pairs for p in ps])
+        embeddings = self.sequential_embedding.embed(inputs, outputs)
         return JaggedEmbeddings.consecutive(embeddings, [len(x) for x in pairs])
 
 
