@@ -65,6 +65,12 @@ class JaggedEmbeddings:
         return cls(embeddings, indices_each)
 
     @classmethod
+    def from_lists(cls, place_m, embeddings):
+        lengths = [len(x) for x in embeddings]
+        flat_embeddings = np.array([e for es in embeddings for e in es])
+        return cls.consecutive(place(place_m, torch.tensor(flat_embeddings)), lengths)
+
+    @classmethod
     def cat_along_embedding(cls, *elements):
         indices_each = [element.indices_for_each for element in elements]
         for i in indices_each[1:]:
