@@ -15,7 +15,7 @@ from synthesis.decompose.oracle_decomposer import (
     half_split_sequential_program,
 )
 
-model_path = "logdirs/repl_karel_5"
+model_path = "logdirs/repl_karel_6"
 
 
 data = KarelSequentialDataset("train", 8, limit=2_000_000)
