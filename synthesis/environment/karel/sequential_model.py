@@ -1,3 +1,5 @@
+import itertools
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -6,10 +8,10 @@ from .standard_karel import GRID_SIZE
 
 from ...repl.policy import Policy
 from ...repl.program import SequentialProgram
-from ...utils.utils import JaggedEmbeddings
+from ...utils.utils import JaggedEmbeddings, place
 from ...utils.distribution import IndependentDistribution
 
-from .spec_encoder import KarelTaskEncoder
+from .spec_encoder import KarelTaskEncoder, karel_block
 from .sequential_dynamics import KarelDynamics
 from .sequential_karel import TOKENS, TOKEN_TO_INDEX
 
@@ -106,3 +108,74 @@ class KarelSequentialValue(nn.Module):
     def forward(self, states):
         embedding = self.sequential_embedding(states)
         return self.network(embedding)
+
+
+class KarelSequentialDecomposer(nn.Module):
+    def __init__(self, e=512, channels=64, **kwargs):
+        super().__init__()
+        self.sequential_embedding = KarelSequentialEmbedding(channels, e, **kwargs)
+        self.process_spec = nn.Sequential(
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+        )
+        self.postprocess_pairs = nn.Sequential(
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+            nn.ReLU(),
+            nn.Linear(e, e),
+        )
+        self.project_to_grids = nn.Linear(e, GRID_SIZE[1] * GRID_SIZE[2] * channels)
+
+        self.residual_in_outs = nn.Conv2d(GRID_SIZE[0] * 2, channels, 1)
+
+        self.block_1 = karel_block(channels)
+        self.block_2 = karel_block(channels)
+
+        self.output_layer = nn.Conv2d(channels, GRID_SIZE[0], 1)
+
+    def forward(self, ins, outs):
+        lengths = [len(x) for x in ins]
+        ins = np.array(list(itertools.chain(*ins)))
+        outs = np.array(list(itertools.chain(*outs)))
+
+        pairs = self.embed_pairs(ins, outs, lengths)
+        in_outs = self.embed_in_outs(ins, outs)
+
+        embeddings = pairs + in_outs
+
+        embeddings = embeddings + self.block_1(embeddings)
+        embeddings = embeddings + self.block_2(embeddings)
+
+        embeddings = self.output_layer(embeddings)
+
+        return JaggedEmbeddings.consecutive(embeddings, lengths)
+
+    def cross_pollinate_pairs(self, pair_embeddings, lengths):
+        pair_embeddings = JaggedEmbeddings.consecutive(pair_embeddings, lengths)
+        spec_embeddings = pair_embeddings.max_pool()
+        spec_embeddings = spec_embeddings + self.process_spec(spec_embeddings)
+        tiled_spec_embeddings = pair_embeddings.tile(spec_embeddings)
+
+        pair_embeddings = pair_embeddings.embeddings + tiled_spec_embeddings
+        return pair_embeddings
+
+    def embed_pairs(self, ins, outs, lengths):
+        pair_embeddings = self.sequential_embedding.embed(ins, outs)
+
+        pair_embeddings = self.cross_pollinate_pairs(pair_embeddings, lengths)
+        pair_embeddings = pair_embeddings + self.postprocess_pairs(pair_embeddings)
+
+        grid_embeddings = self.project_to_grids(pair_embeddings)
+        grid_embeddings = grid_embeddings.reshape(
+            grid_embeddings.shape[0], -1, GRID_SIZE[1], GRID_SIZE[2]
+        )
+        return grid_embeddings
+
+    def embed_in_outs(self, ins, outs):
+        in_outs = np.concatenate([ins, outs], axis=1)
+        in_outs = place(self, torch.tensor(in_outs))
+        return self.residual_in_outs(in_outs)

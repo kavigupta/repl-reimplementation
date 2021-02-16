@@ -2,17 +2,18 @@ import attr
 from more_itertools import chunked
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 
 from ..environment.dataset import Dataset
 from ..train import train_generic
+from ..utils.utils import JaggedEmbeddings
 
 
 @attr.s
 class DecomposerDataset(Dataset):
     underlying = attr.ib()
     oracle_decomposer = attr.ib()
-    embedding_net = attr.ib()
 
     def __attrs_post_init__(self):
         super().__init__(self.underlying.segment)
@@ -26,11 +27,11 @@ class DecomposerDataset(Dataset):
 
 
 def train_decomposer(
-    policy,
     decomposer_arch,
     data,
     rng,
     lr=1e-3,
+    loss_fn=F.binary_cross_entropy_with_logits,
     *,
     report_frequency=100,
     oracle_decomposer,
@@ -45,11 +46,15 @@ def train_decomposer(
         nonlocal optimizer
         if optimizer is None:
             optimizer = torch.optim.Adam(decomposer.parameters(), lr=lr)
-        with torch.no_grad():
-            ins, outs, inters = [policy.embedding_net(grids) for grids in chunk]
+
+        ins, outs, inters = chunk
+        inters = JaggedEmbeddings.from_lists(decomposer, inters)
         inters_pred = decomposer(ins, outs)
+
         assert inters.indices_for_each == inters_pred.indices_for_each
-        loss = ((inters_pred.embeddings - inters.embeddings) ** 2).mean()
+
+        loss = loss_fn(inters_pred.embeddings, inters.embeddings)
+
         loss.backward()
         optimizer.step()
         return loss.item()
@@ -59,9 +64,9 @@ def train_decomposer(
         return f"Loss: {np.mean(losses)}"
 
     train_generic(
-        DecomposerDataset(
-            data, oracle_decomposer, policy.embedding_net
-        ).multiple_epochs_iter(batch_size=batch_size, epochs=epochs, seed=seed),
+        DecomposerDataset(data, oracle_decomposer).multiple_epochs_iter(
+            batch_size=batch_size, epochs=epochs, seed=seed
+        ),
         train_fn,
         report_fn,
         [decomposer_arch],
