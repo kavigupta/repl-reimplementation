@@ -3,10 +3,16 @@ import numpy as np
 from synthesis.repl.train import pretrain, finetune
 from synthesis.environment.karel.sequential_karel import KarelSequentialDataset
 from synthesis.environment.karel.sequential_dynamics import KarelDynamics
-from synthesis.environment.karel.sequential_model import KarelSequentialPolicy, KarelSequentialValue
+from synthesis.environment.karel.sequential_model import (
+    KarelSequentialPolicy,
+    KarelSequentialValue,
+)
 from synthesis.utils.utils import load_model
 from synthesis.decompose.train import train_decomposer
-from synthesis.decompose.oracle_decomposer import OracleDecomposer, half_split_sequential_program
+from synthesis.decompose.oracle_decomposer import (
+    OracleDecomposer,
+    half_split_sequential_program,
+)
 from synthesis.decompose.embeddings_decomposer import TransformerEmbeddingsDecomposer
 
 model_path = "logdirs/repl_karel_3"
