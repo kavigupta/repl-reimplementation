@@ -34,6 +34,7 @@ def train_decomposer(
     loss_fn=F.binary_cross_entropy_with_logits,
     *,
     report_frequency=100,
+    decay_per_element=0,
     oracle_decomposer,
     batch_size,
     epochs,
@@ -46,6 +47,8 @@ def train_decomposer(
         nonlocal optimizer
         if optimizer is None:
             optimizer = torch.optim.Adam(decomposer.parameters(), lr=lr)
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr * (1 - decay_per_element) ** (idx * batch_size)
 
         ins, outs, inters = chunk
         inters = JaggedEmbeddings.from_lists(decomposer, inters)
