@@ -41,6 +41,18 @@ pretrain(
     seed=0,
 )
 
+va = lambda: KarelSequentialValue(pol).cuda()
+
+finetune(
+    va,
+    data,
+    rng,
+    lr=1e-7,
+    model_path=model_path,
+    batch_size=batch_size,
+    epochs=2,
+    seed=1,
+)
 
 train_decomposer(
     da,
@@ -52,18 +64,5 @@ train_decomposer(
     batch_size=batch_size // 4,
     decay_per_element=0.2/2_000_000,
     epochs=10,
-    seed=1,
-)
-
-va = lambda: KarelSequentialValue(pol).cuda()
-
-finetune(
-    va,
-    data,
-    rng,
-    lr=1e-7,
-    model_path=model_path,
-    batch_size=batch_size,
-    epochs=2,
     seed=1,
 )
