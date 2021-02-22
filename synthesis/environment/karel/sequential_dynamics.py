@@ -9,6 +9,7 @@ from ...repl.program import SequentialProgram
 from .sequential_karel import toks_to_program
 
 
+@attr.s
 class KarelDynamics(Dynamics):
     size = attr.ib()
 

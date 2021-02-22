@@ -47,7 +47,7 @@ class KarelSequentialEmbedding(nn.Module):
 
 
 class KarelSequentialPolicy(nn.Module, Policy):
-    def __init__(self, channels=64, e=512, **kwargs):
+    def __init__(self, channels=64, e=512, *, max_length, **kwargs):
         super().__init__()
         self.sequential_embedding = KarelSequentialEmbedding(channels, e, **kwargs)
         self.net = nn.Sequential(
@@ -60,9 +60,11 @@ class KarelSequentialPolicy(nn.Module, Policy):
             nn.Linear(e, len(TOKENS)),
         )
 
+        self._max_length = max_length
+
     @property
     def dynamics(self):
-        return KarelDynamics()
+        return KarelDynamics(self._max_length)
 
     @property
     def initial_program_set(self):
