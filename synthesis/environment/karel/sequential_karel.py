@@ -69,13 +69,13 @@ class KarelSequentialDataset(Dataset):
         except FileExistsError:
             pass
         self.shelf = shelve.open(os.path.join(prefix, f"{segment}_{size}"))
-        self.limit = min(len(self.underlying), limit)
+        self._limit = min(len(self.underlying), limit)
 
     def dataset(self, seed, pbar=lambda x: x):
-        shuffled_idxs = list(range(self.limit))
+        shuffled_idxs = list(range(self._limit))
         np.random.RandomState(seed).shuffle(shuffled_idxs)
         # just a standardized pseudorandom scheme
-        seeds = np.random.RandomState(0).randint(2 ** 32, size=self.limit)
+        seeds = np.random.RandomState(0).randint(2 ** 32, size=self._limit)
         for index, round_seed in pbar(list(zip(shuffled_idxs, seeds))):
             index = str(index)
             if index not in self.shelf:
