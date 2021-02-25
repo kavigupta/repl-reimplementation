@@ -146,8 +146,12 @@ class PaddedSequence:
     def of(values, dtype, place_m):
         N = len(values)
         L = max(len(v) for v in values)
-        sequences, mask = place(place_m, torch.zeros((N, L), dtype=dtype)), place(
-            place_m, torch.zeros((N, L), dtype=torch.bool)
+        sequences, mask = (
+            place(
+                place_m,
+                torch.zeros((N, L, *getattr(values[0][0], "shape", ())), dtype=dtype),
+            ),
+            place(place_m, torch.zeros((N, L), dtype=torch.bool)),
         )
         for i, v in enumerate(values):
             sequences[i, : len(v)] = place(place_m, torch.tensor(v))
