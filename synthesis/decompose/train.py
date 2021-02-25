@@ -57,12 +57,19 @@ def train_decomposer(
 
         loss.backward()
         optimizer.step()
-        return loss.item(), (pred == inters[0]).mean()
+        return loss.item(), (pred != inters[0]).sum((1, 2, 3))
 
     def report_fn(idx, values):
-        output, accuracies = np.array(values).T
+        output, bads = zip(*values)
         losses = np.mean(output)
-        return f"Loss: {np.mean(losses)}, Acc: {100 * np.mean(accuracies == 1)}%"
+        bads = np.array(bads)
+        return ", ".join(
+            [
+                f"Loss: {np.mean(losses):.6f}",
+                f"Acc: {100 * np.mean(bads == 0):.2f}%",
+                f"Mean bad pixels: {np.mean(bads):.2f}",
+            ]
+        )
 
     train_generic(
         DecomposerDataset(data, oracle_decomposer).multiple_epochs_iter(
