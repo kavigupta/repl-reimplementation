@@ -59,7 +59,8 @@ def train_decomposer(
         optimizer.step()
         return loss.item(), (pred == inters[0]).mean()
 
-    def report_fn(idx, output, accuracies):
+    def report_fn(idx, values):
+        output, accuracies = np.array(values).T
         losses = np.mean(output)
         return f"Loss: {np.mean(losses)}, Acc: {100 * np.mean(accuracies == 1)}%"
 
