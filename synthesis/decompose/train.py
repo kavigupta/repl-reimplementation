@@ -51,20 +51,17 @@ def train_decomposer(
             param_group["lr"] = lr * (1 - decay_per_element) ** (idx * batch_size)
 
         ins, outs, inters = chunk
-        inters = JaggedEmbeddings.from_lists(decomposer, inters)
-        inters_pred = decomposer(ins, outs)
+        loss = decomposer.loss(ins, outs, np.array(inters))
 
-        assert inters.indices_for_each == inters_pred.indices_for_each
-
-        loss = loss_fn(inters_pred.embeddings, inters.embeddings)
+        [pred] = decomposer(ins[:1], outs[:1])
 
         loss.backward()
         optimizer.step()
-        return loss.item()
+        return loss.item(), (pred == inters[0]).mean()
 
-    def report_fn(idx, output):
+    def report_fn(idx, output, accuracies):
         losses = np.mean(output)
-        return f"Loss: {np.mean(losses)}"
+        return f"Loss: {np.mean(losses)}, Acc: {100 * np.mean(accuracies == 1)}%"
 
     train_generic(
         DecomposerDataset(data, oracle_decomposer).multiple_epochs_iter(
