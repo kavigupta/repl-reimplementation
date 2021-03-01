@@ -122,13 +122,13 @@ class DeltaLSTM(nn.Module):
         self.forwards_map = {i + 1: d for i, d in enumerate(STATE_DELTAS)}
 
         self.grid_embedding = KarelTaskEncoder(
-            image_size=GRID_SIZE, embedding_size=channels, num_grids=1
+            image_size=GRID_SIZE, embedding_size=channels, num_grids=3
         )
         self.grid_embedding_out = nn.Linear(GRID_SIZE[1] * GRID_SIZE[2] * channels, e)
         self.lstm = nn.LSTM(e, e, num_layers=num_layers)
         self.out = nn.Linear(e, len(STATE_DELTAS) + 1)
 
-    def loss(self, embeddings, inputs, inters):
+    def loss(self, embeddings, inputs, outputs, inters):
         # TODO actually regress against all, for now just shuffle
 
         deltas = []
@@ -144,7 +144,9 @@ class DeltaLSTM(nn.Module):
 
         deltas = PaddedSequence.of(deltas, torch.long, self)
         flat_arrays = [x for array in arrays for x in array]
-        flat_arrays = self.run_grid_embedding(flat_arrays)
+        flat_inputs = [inp for inp, array in zip(inputs, arrays) for _ in array]
+        flat_outputs = [out for out, array in zip(outputs, arrays) for _ in array]
+        flat_arrays = self.run_grid_embedding(flat_arrays, flat_inputs, flat_outputs)
         grid_embeddings = JaggedEmbeddings.consecutive(
             flat_arrays, [len(x) for x in arrays]
         )
@@ -165,18 +167,22 @@ class DeltaLSTM(nn.Module):
         selected_delta_values = selected_delta_values.reshape(*deltas.mask.shape)
         return -(selected_delta_values * deltas.mask).sum() / deltas.mask.sum()
 
-    def run_grid_embedding(self, flat_arrays):
-        flat_arrays = self.grid_embedding.run_on_grids(np.array(flat_arrays))
+    def run_grid_embedding(self, flat_arrays, flat_inputs, flat_outputs):
+        flat_arrays = self.grid_embedding.run_on_grids(
+            np.array(flat_arrays), np.array(flat_inputs), np.array(flat_outputs)
+        )
         flat_arrays = flat_arrays.reshape(flat_arrays.shape[0], -1)
         flat_arrays = self.grid_embedding_out(flat_arrays)
         return flat_arrays
 
-    def forward(self, embeddings, inputs, max_length=10):
+    def forward(self, embeddings, inputs, outputs, max_length=10):
         arrays = inputs
         done = [0] * len(arrays)
         state = None
         for _ in range(max_length):
-            round_embeddings = self.run_grid_embedding(arrays) + embeddings
+            round_embeddings = (
+                self.run_grid_embedding(arrays, inputs, outputs) + embeddings
+            )
             out, state = self.lstm(round_embeddings.unsqueeze(1), state)
             out = self.out(out)
             _, operations = out.squeeze(1).max(-1)
@@ -230,7 +236,7 @@ class KarelSequentialDecomposer(nn.Module):
     def forward(self, ins, outs):
         lengths, ins, outs, embeddings = self.common_forward(ins, outs)
 
-        inters = self.delta_lstm(embeddings, ins)
+        inters = self.delta_lstm(embeddings, ins, outs)
         result = []
         start = 0
         for length in lengths:
