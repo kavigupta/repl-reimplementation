@@ -231,7 +231,7 @@ class KarelSequentialDecomposer(nn.Module):
         lengths, ins, outs, embeddings = self.common_forward(ins, outs)
         inters = np.array(list(itertools.chain(*inters)))
 
-        return self.delta_lstm.loss(embeddings, ins, inters)
+        return self.delta_lstm.loss(embeddings, ins, outs, inters)
 
     def forward(self, ins, outs):
         lengths, ins, outs, embeddings = self.common_forward(ins, outs)
