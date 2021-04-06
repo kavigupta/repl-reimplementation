@@ -15,7 +15,7 @@ from synthesis.decompose.oracle_decomposer import (
     half_split_sequential_program,
 )
 
-model_path = "logdirs/repl_karel_7"
+model_path = "logdirs/repl_karel_10"
 
 max_length = 16
 
@@ -29,30 +29,30 @@ rng = np.random.RandomState(0)
 
 batch_size = 512
 
-pretrain(
-    pa,
-    dynamics,
-    data,
-    rng,
-    lr=1e-5,
-    model_path=model_path,
-    batch_size=batch_size,
-    epochs=2,
-    seed=0,
-)
+# pretrain(
+#     pa,
+#     dynamics,
+#     data,
+#     rng,
+#     lr=1e-5,
+#     model_path=model_path,
+#     batch_size=batch_size,
+#     epochs=2,
+#     seed=0,
+# )
 
-va = lambda: KarelSequentialValue(pol).cuda()
+# va = lambda: KarelSequentialValue(pol).cuda()
 
-finetune(
-    va,
-    data,
-    rng,
-    lr=1e-7,
-    model_path=model_path,
-    batch_size=batch_size,
-    epochs=2,
-    seed=1,
-)
+# finetune(
+#     va,
+#     data,
+#     rng,
+#     lr=1e-7,
+#     model_path=model_path,
+#     batch_size=batch_size,
+#     epochs=2,
+#     seed=1,
+# )
 
 train_decomposer(
     da,
@@ -60,7 +60,7 @@ train_decomposer(
     rng,
     lr=1e-7,
     model_path=model_path,
-    oracle_decomposer=OracleDecomposer(half_split_sequential_program, KarelDynamics()),
+    oracle_decomposer=OracleDecomposer(half_split_sequential_program, KarelDynamics(max_length)),
     batch_size=batch_size // 4,
     decay_per_element=0.2/2_000_000,
     epochs=10,
