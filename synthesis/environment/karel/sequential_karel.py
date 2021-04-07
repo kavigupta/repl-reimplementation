@@ -12,7 +12,11 @@ from ...repl.program import SequentialProgram
 from .standard_karel import KarelDataset, get_one_hot, from_one_hot
 
 ACTIONS = ["move", "turnRight", "turnLeft", "pickMarker", "putMarker"]
-TOKENS = ACTIONS
+TOKENS = (
+    ACTIONS
+    + ["END"]
+    + [("repeat", ntoks, ntimes) for ntoks in range(1, 5) for ntimes in range(1, 5)]
+)
 TOKEN_TO_INDEX = {tok: idx for idx, tok in enumerate(TOKENS)}
 
 
@@ -46,7 +50,45 @@ def remove_after_end(toks):
 
 
 def toks_to_program(toks):
-    return unparse(dict(type="run", body=[dict(type=tok) for tok in toks]))
+    return unparse(toks_to_tree(toks))
+
+
+def toks_to_tree(toks):
+    toks = remove_after_end(toks)
+    body = []
+    for tok in toks:
+        if isinstance(tok, str):
+            body.append(dict(type=tok))
+            continue
+        assert tok[0] == "repeat"
+        _, ntoks, times = tok
+        repeat = dict(
+            type="repeat",
+            times=dict(type="count", value=times),
+            body=body[-ntoks:],
+        )
+        body[-ntoks:] = []
+        body.append(repeat)
+    t = dict(type="run", body=body)
+    return t
+
+
+def flatten_program(p):
+    if isinstance(p, list):
+        for b in p:
+            yield from flatten_program(b)
+    assert isinstance(p, dict)
+    if p["type"] in ACTIONS:
+        yield p["type"]
+        return
+    if p["type"] == "run":
+        yield from flatten_program(p["body"])
+        return
+    if p["type"] == "repeat":
+        for _ in range(p["times"]["value"]):
+            yield from flatten_program(p["body"])
+        return
+    raise RuntimeError(f"Invalid node {p}")
 
 
 @attr.s
@@ -57,15 +99,32 @@ class NoRepeatsSampler:
         return rng.choice(ACTIONS, size=self.size, replace=True)
 
 
+@attr.s
+class FlatRepeatsSampler:
+    flatten_out = attr.ib()
 
-def random_sequential_program(size, rng):
-    toks = rng.choice(TOKENS, size=size, replace=True)
-    return SequentialProgram(tuple(toks)), toks_to_program(toks)
+    chunk_dist = attr.ib()
+    repeat_dist = attr.ib()
+    repeat_body_dist = attr.ib()
+
+    @staticmethod
+    def sample_dist(rng, dist):
+        return rng.choice(len(dist), p=dist)
+
+    def __call__(self, rng):
+        toks = []
+        for _ in range(self.sample_dist(rng, self.chunk_dist)):
+            body_size = self.sample_dist(rng, self.repeat_body_dist)
+            toks.extend(rng.choice(ACTIONS, size=body_size, replace=True))
+            toks.append(("repeat", body_size, self.sample_dist(rng, self.repeat_dist)))
+        if self.flatten_out:
+            toks = list(flatten_program(toks_to_tree((toks))))
+        return toks
 
 
 def _randomly_sample_spec_once(data, rng, *, program_sampler, train=5, test=1):
     toks = program_sampler(rng)
-    toks, prog = SequentialProgram(tuple(toks)), toks_to_program(toks)
+    toks, prog = SequentialProgram(tuple(toks + ["END"])), toks_to_program(toks)
 
     pairs = []
     for _ in range(train + test):
