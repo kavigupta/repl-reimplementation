@@ -18,14 +18,14 @@ class KarelDynamics(Dynamics):
 
     def partially_execute_pair(self, program, pair):
         try:
-            return execute(toks_to_program(program.tokens), pair.input).result
+            return execute(toks_to_program(program.tokens), pair.input).result, program
         except ExecutorRuntimeException:
             return pair.input
 
     def program_is_correct(self, program, spec):
         executed = self.partially_execute(program, spec)
         return np.all(
-            [np.all(e == pair.output) for e, pair in zip(executed, spec.pairs)]
+            [np.all(e == pair.output) for (e, _), pair in zip(executed, spec.pairs)]
         )
 
     def program_is_complete(self, program, spec):
