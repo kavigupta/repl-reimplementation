@@ -6,3 +6,6 @@ logdirs-old
 *.pyc
 .ipynb_checkpoints
 Untitled*.ipynb
+
+# ides
+.idea
