@@ -2,6 +2,7 @@ import os
 import shelve
 
 import numpy as np
+import attr
 
 from karel_for_synthesis import execute, unparse, ExecutorRuntimeException
 
@@ -10,7 +11,8 @@ from ..spec import Pair, Specification
 from ...repl.program import SequentialProgram
 from .standard_karel import KarelDataset, get_one_hot, from_one_hot
 
-TOKENS = ["move", "turnRight", "turnLeft", "pickMarker", "putMarker"]
+ACTIONS = ["move", "turnRight", "turnLeft", "pickMarker", "putMarker"]
+TOKENS = ACTIONS
 TOKEN_TO_INDEX = {tok: idx for idx, tok in enumerate(TOKENS)}
 
 
@@ -30,8 +32,30 @@ def random_compatible_input(data, program, rng, max_steps=100):
             pass
 
 
+def is_end(token):
+    return token == "END"
+
+
+def remove_after_end(toks):
+    new_toks = []
+    for tok in toks:
+        if is_end(tok):
+            break
+        new_toks.append(tok)
+    return new_toks
+
+
 def toks_to_program(toks):
     return unparse(dict(type="run", body=[dict(type=tok) for tok in toks]))
+
+
+@attr.s
+class NoRepeatsSampler:
+    size = attr.ib()
+
+    def __call__(self, rng):
+        return rng.choice(ACTIONS, size=self.size, replace=True)
+
 
 
 def random_sequential_program(size, rng):
@@ -39,8 +63,9 @@ def random_sequential_program(size, rng):
     return SequentialProgram(tuple(toks)), toks_to_program(toks)
 
 
-def _randomly_sample_spec_once(data, rng, *, size, train=5, test=1):
-    toks, prog = random_sequential_program(size, rng)
+def _randomly_sample_spec_once(data, rng, *, program_sampler, train=5, test=1):
+    toks = program_sampler(rng)
+    toks, prog = SequentialProgram(tuple(toks)), toks_to_program(toks)
 
     pairs = []
     for _ in range(train + test):
@@ -59,16 +84,18 @@ def randomly_sample_spec(*args, **kwargs):
 
 
 class KarelSequentialDataset(Dataset):
-    def __init__(self, segment, size, path="data/karel_standard", limit=float("inf")):
+    def __init__(
+        self, segment, sampler, path="data/karel_standard", limit=float("inf")
+    ):
         super().__init__(segment)
-        self.size = size
+        self.sampler = sampler
         self.underlying = KarelDataset(segment, path=path).datafile
         prefix = os.path.join(path, "karel_sequential")
         try:
             os.makedirs(prefix)
         except FileExistsError:
             pass
-        self.shelf = shelve.open(os.path.join(prefix, f"{segment}_{size}"))
+        self.shelf = shelve.open(os.path.join(prefix, f"{segment}_{sampler}"))
         self._limit = min(len(self.underlying), limit)
 
     def dataset(self, seed, pbar=lambda x: x):
@@ -83,7 +110,7 @@ class KarelSequentialDataset(Dataset):
                     *randomly_sample_spec(
                         self.underlying,
                         np.random.RandomState(round_seed),
-                        size=self.size,
+                        sampler=self.sampler,
                     )
                 )
             yield self._unpack(*self.shelf[index])

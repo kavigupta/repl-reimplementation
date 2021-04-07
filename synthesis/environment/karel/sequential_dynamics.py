@@ -6,7 +6,7 @@ from karel_for_synthesis import execute, ExecutorRuntimeException
 
 from ...repl.dynamics import Dynamics
 from ...repl.program import SequentialProgram
-from .sequential_karel import toks_to_program
+from .sequential_karel import toks_to_program, is_end
 
 
 @attr.s
@@ -29,7 +29,11 @@ class KarelDynamics(Dynamics):
         )
 
     def program_is_complete(self, program, spec):
-        return len(program.tokens) == self.size
+        return (
+            len(program.tokens) == self.size
+            or program.tokens
+            and is_end(program.tokens[-1])
+        )
 
     @property
     def program_class(self):
