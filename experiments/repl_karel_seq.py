@@ -10,7 +10,7 @@ from synthesis.environment.karel.sequential_model import (
 )
 from synthesis.utils.utils import load_model
 
-model_path = "logdirs/repl_karel_11"
+model_path = "logdirs/repl_karel_seq_1"
 
 max_length = 1000
 
