@@ -77,6 +77,7 @@ def flatten_program(p):
     if isinstance(p, list):
         for b in p:
             yield from flatten_program(b)
+        return
     assert isinstance(p, dict)
     if p["type"] in ACTIONS:
         yield p["type"]
@@ -103,9 +104,9 @@ class NoRepeatsSampler:
 class FlatRepeatsSampler:
     flatten_out = attr.ib()
 
-    chunk_dist = attr.ib()
-    repeat_dist = attr.ib()
-    repeat_body_dist = attr.ib()
+    chunk_dist = attr.ib(default=[0.25, 0.25, 0.25, 0.25])
+    repeat_dist = attr.ib(default=[0.25, 0.25, 0.25, 0.25])
+    repeat_body_dist = attr.ib(default=[0.25, 0.25, 0.25, 0.25])
 
     @staticmethod
     def sample_dist(rng, dist):
@@ -169,7 +170,7 @@ class KarelSequentialDataset(Dataset):
                     *randomly_sample_spec(
                         self.underlying,
                         np.random.RandomState(round_seed),
-                        sampler=self.sampler,
+                        program_sampler=self.sampler,
                     )
                 )
             yield self._unpack(*self.shelf[index])
