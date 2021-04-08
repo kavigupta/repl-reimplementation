@@ -19,12 +19,15 @@ from .sequential_karel import TOKENS, TOKEN_TO_INDEX
 
 
 class KarelSequentialEmbedding(nn.Module):
-    def __init__(self, channels=64, e=512):
+    def __init__(self, channels=64, e=512, history_length=10):
         super().__init__()
+        self.history_length = history_length
         self.embedding = KarelTaskEncoder(
             image_size=GRID_SIZE, embedding_size=channels, num_grids=2
         )
         self.project = nn.Linear(channels * GRID_SIZE[1] * GRID_SIZE[2], e)
+        self.history_embedding = nn.Embedding(len(TOKENS) + 1, e)
+        self.history_embedding_project = nn.Linear(e * history_length, e)
 
     def embed(self, inputs, outputs):
         embedding = self.embedding.run_on_grids(inputs, outputs)
@@ -35,16 +38,37 @@ class KarelSequentialEmbedding(nn.Module):
     def forward(self, states):
         outs, currents = [], []
         lengths = []
+        history_embeddings = []
         for s in states:
             pairs = s.specification.pairs
             [current] = s.semantic_partial_programs
+            [partial_prog] = {p for _, p in current}
+            partial_prog = [TOKEN_TO_INDEX[x] for x in partial_prog.tokens]
+            partial_prog = partial_prog[-len(partial_prog) :]
+            partial_prog = [len(TOKENS) - 1] * (
+                self.history_length - len(partial_prog)
+            ) + partial_prog
+            history_embeddings.append(partial_prog)
+            current = [c for c, _ in current]
             lengths.append(len(pairs))
             outs += [p.output for p in pairs]
             currents += current
 
-        currents, outs = np.array(currents), np.array(outs)
+        currents, outs, history_embeddings = (
+            np.array(currents),
+            np.array(outs),
+            np.array(history_embeddings),
+        )
         embedding = self.embed(currents, outs)
         embedding = JaggedEmbeddings.consecutive(embedding, lengths).max_pool()
+
+        history_embeddings = torch.tensor(history_embeddings, device=embedding.device)
+        history_embeddings = self.history_embedding(history_embeddings)
+        history_embeddings = history_embeddings.reshape(history_embeddings.shape[0], -1)
+        history_embeddings = self.history_embedding_project(history_embeddings)
+
+        embedding = embedding + history_embeddings
+
         return embedding
 
 
