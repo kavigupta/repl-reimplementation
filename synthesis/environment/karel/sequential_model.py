@@ -44,10 +44,11 @@ class KarelSequentialEmbedding(nn.Module):
             [current] = s.semantic_partial_programs
             [partial_prog] = {p for _, p in current}
             partial_prog = [TOKEN_TO_INDEX[x] for x in partial_prog.tokens]
-            partial_prog = partial_prog[-len(partial_prog) :]
+            partial_prog = partial_prog[-self.history_length :]
             partial_prog = [len(TOKENS) - 1] * (
                 self.history_length - len(partial_prog)
             ) + partial_prog
+            assert len(partial_prog) == self.history_length
             history_embeddings.append(partial_prog)
             current = [c for c, _ in current]
             lengths.append(len(pairs))
