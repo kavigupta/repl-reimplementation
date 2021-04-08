@@ -22,7 +22,7 @@ da = lambda: KarelSequentialDecomposer().cuda()
 rng = np.random.RandomState(0)
 
 
-batch_size = 3
+batch_size = 512
 
 pretrain(
     pa,
