@@ -2,13 +2,29 @@ from typing import Counter
 import attr
 from enum import Enum
 
-from .sampler import SamplerError
+from .driver import SamplerError
 
 
 class BaseType(Enum):
     numeric = "numeric"
+    bool = "bool"
     point = "point"
-    compound_object = "compound_object"
+    range = "range"
+
+    statement = "statement"
+    block = "block"
+    block_length = "block_length"
+
+
+@attr.s
+class FreeVariableType:
+    pass
+
+
+@attr.s
+class WithinContext:
+    type = attr.ib()
+    typenv = attr.ib()
 
 
 @attr.s
@@ -21,12 +37,15 @@ class TypeEnv:
             vars = [var for var in vars if self.type_map[var] == require_type]
         return vars
 
+    def bind_all(self, mapping):
+        type_map = self.type_map.copy()
+        type_map.update(mapping)
+        return TypeEnv(type_map)
+
     def bind(self, var, typ):
         if var is None:
             return self
-        type_map = self.type_map.copy()
-        type_map[var] = typ
-        return TypeEnv(type_map)
+        return self.bind_all({var: typ})
 
     def intersection(self, other):
         common_vars = set(self.type_map.keys()).intersection(other.type_map.keys())
