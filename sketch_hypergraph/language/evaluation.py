@@ -7,6 +7,10 @@ from sketch_hypergraph.language.ast import ASTNode, BlockNode, ForNode, IfNode
 class EvaluationContext:
     statement_signatures = attr.ib()
 
+    @classmethod
+    def of(cls, *elements):
+        return cls({element.name: element for element in elements})
+
     def post_node_environment(self, node, pre_node_environment):
         if isinstance(node, ForNode):
             return pre_node_environment

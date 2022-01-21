@@ -1,5 +1,4 @@
 from operator import add, sub, eq, ne, le, lt, ge, gt, and_, or_
-from sketch_hypergraph.language.evaluation_context import EvaluationContext
 
 from sketch_hypergraph.language.types import BaseType
 
@@ -28,10 +27,7 @@ BOOLEAN_ARITHMETIC_OPERATION = {
 BOOLEAN_CONDITION_OPERATION = {"&&": and_, "||": or_}
 
 
-def standard_grammar(alphabet, numbers, max_block_length, statement_signatures):
-    evaluation_context = EvaluationContext(
-        {signature.name: signature for signature in statement_signatures}
-    )
+def standard_grammar(alphabet, numbers, max_block_length, context):
     return Grammar(
         alphabet,
         {
@@ -61,7 +57,7 @@ def standard_grammar(alphabet, numbers, max_block_length, statement_signatures):
             "bool_un_op": [BuiltinExpansionRule(["!"])],
             BaseType.point: [VariableExpansionRule(BaseType.point)],
             BaseType.statement: [
-                StatementExpansionRule(signature) for signature in statement_signatures
+                StatementExpansionRule(signature) for signature in context.statement_signatures.values()
             ]
             + [ForExpansionRule(), IfExpansionRule()],
             BaseType.block_length: [
@@ -69,7 +65,7 @@ def standard_grammar(alphabet, numbers, max_block_length, statement_signatures):
                     [("block_length", i) for i in range(1, max_block_length + 1)]
                 )
             ],
-            BaseType.block: [BlockExpansionRule(evaluation_context)],
+            BaseType.block: [BlockExpansionRule(context)],
             BaseType.range: [NonTerminalExpansionRule("Range", [BaseType.numeric] * 3)],
         },
     )
