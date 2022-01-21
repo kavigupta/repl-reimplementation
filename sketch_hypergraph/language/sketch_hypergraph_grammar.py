@@ -28,7 +28,7 @@ BOOLEAN_ARITHMETIC_OPERATION = {
 BOOLEAN_CONDITION_OPERATION = {"&&": and_, "||": or_}
 
 
-def standard_grammar(alphabet, max_block_length, statement_signatures):
+def standard_grammar(alphabet, numbers, max_block_length, statement_signatures):
     evaluation_context = EvaluationContext(
         {signature.name: signature for signature in statement_signatures}
     )
@@ -36,7 +36,7 @@ def standard_grammar(alphabet, max_block_length, statement_signatures):
         alphabet,
         {
             BaseType.numeric: [
-                ConstantExpansionRule([1, 2, 3, 4]),
+                ConstantExpansionRule(numbers),
                 VariableExpansionRule(BaseType.numeric),
                 NonTerminalExpansionRule(
                     "NBinop", ["num_bin_op", BaseType.numeric, BaseType.numeric]
