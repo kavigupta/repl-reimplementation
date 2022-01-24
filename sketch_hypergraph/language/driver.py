@@ -30,5 +30,21 @@ class SamplingDriver(Driver):
         return elements[idx]
 
 
+def sample(driver_config, grammar, typenv):
+    from sketch_hypergraph.language.ast_constructor import ASTConstructionState
+    from sketch_hypergraph.language.types import BaseType, WithinContext
+
+    driver_config = driver_config.copy()
+    assert driver_config.pop("type") == "SamplingDriver"
+    driver = SamplingDriver(**driver_config)
+    while True:
+        try:
+            return ASTConstructionState.run_full_with_driver(
+                grammar, driver, WithinContext(BaseType.block, typenv)
+            )
+        except SamplerError:
+            continue
+
+
 class SamplerError(Exception):
     pass
