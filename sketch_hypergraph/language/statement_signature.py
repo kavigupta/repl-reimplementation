@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 
 import attr
 
+from .evaluation import EvaluationResult
+from .value import Arc, Circle, Line, Point
+
 
 @attr.s
 class StatementSignature(ABC):
@@ -19,9 +22,34 @@ class StatementSignature(ABC):
         )
         return Statement(self, inputs, outputs)
 
+    @abstractmethod
+    def evaluate(self, env, statement):
+        pass
+
 
 class PrimitiveStatementSignature(StatementSignature):
-    pass
+    def evaluate(self, env, statement):
+        statement = self.bind(statement)
+        evaluated_inputs = []
+        drawn_objects = []
+        for inp in statement.inputs:
+            res = env.evaluate(inp)
+            evaluated_inputs.append(res.value)
+            drawn_objects += res.drawn_objects
+            assert res.new_environment is env
+
+        evaluated_result = dict(
+            Point=Point.of, Line=Line.of, Circle=Circle.of, Arc=Arc.of
+        )[self.name](*evaluated_inputs)
+
+        assert len(self.output_types) <= 1
+        if statement.outputs:
+            [output] = statement.outputs
+            env = env.bind(output.name, evaluated_result)
+        drawn_objects += [evaluated_result]
+        return EvaluationResult(
+            value=evaluated_result, drawn_objects=drawn_objects, new_environment=env
+        )
 
 
 @attr.s
