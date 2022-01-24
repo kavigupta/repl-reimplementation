@@ -2,7 +2,7 @@ from typing import Counter
 import attr
 from enum import Enum
 
-from .driver import SamplerError
+from .driver import DriverError
 
 
 class BaseType(Enum):
@@ -51,7 +51,7 @@ class TypeEnv:
         common_vars = set(self.type_map.keys()).intersection(other.type_map.keys())
         for var in common_vars:
             if self.type_map[var] != other.type_map[var]:
-                raise SamplerError(
+                raise DriverError(
                     "Variable {} has incompatible types {} and {}".format(
                         var, self.type_map[var], other.type_map[var]
                     )

@@ -17,7 +17,7 @@ class SamplingDriver(Driver):
 
     def select(self, elements):
         if len(elements) == 0:
-            raise SamplerError("Cannot sample from empty set")
+            raise DriverError("Cannot sample from empty set")
         tags = [el.node_class() for el in elements]
         tag_counts = Counter(tags)
         if len(tag_counts) == 1:
@@ -42,9 +42,9 @@ def sample(driver_config, grammar, typenv):
             return ASTConstructionState.run_full_with_driver(
                 grammar, driver, WithinContext(BaseType.block, typenv)
             )
-        except SamplerError:
+        except DriverError:
             continue
 
 
-class SamplerError(Exception):
+class DriverError(Exception):
     pass
