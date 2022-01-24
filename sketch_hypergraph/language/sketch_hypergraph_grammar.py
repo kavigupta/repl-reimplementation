@@ -57,7 +57,8 @@ def standard_grammar(alphabet, numbers, max_block_length, context):
             "bool_un_op": [BuiltinExpansionRule(["!"])],
             BaseType.point: [VariableExpansionRule(BaseType.point)],
             BaseType.statement: [
-                StatementExpansionRule(signature) for signature in context.statement_signatures.values()
+                StatementExpansionRule(signature)
+                for signature in context.statement_signatures.values()
             ]
             + [ForExpansionRule(), IfExpansionRule()],
             BaseType.block_length: [

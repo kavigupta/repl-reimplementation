@@ -1,10 +1,10 @@
-
 from abc import ABC, abstractmethod
 
 import attr
 import numpy as np
 
 from .utils import fit_circle
+
 
 class Object(ABC):
     pass
@@ -90,4 +90,3 @@ class Circle(DrawnObject):
         if r == 0:
             raise DrawnObjectInvalidError("Circle is a point")
         canvas.draw_circle(center, r, 0, 2 * np.pi)
-
