@@ -3,7 +3,8 @@ import attr
 
 from sketch_hypergraph.language.types import BaseType, FreeVariableType, WithinContext
 
-from .ast import AST, ASTNode, BlockNode, Constant, ForNode, Variable
+from .ast import ASTNode, BlockNode, Constant, ForNode, Variable
+from .constructible import Constructible
 
 
 class PartiallyFinishedNode(ABC):
@@ -162,7 +163,7 @@ class ASTConstructionStatePartial(ASTConstructionState):
     def replace(self, replacement):
         nodes = self.partially_finished_nodes[:]
         while nodes:
-            if not isinstance(replacement, AST):
+            if not isinstance(replacement, Constructible):
                 assert isinstance(replacement, PartiallyFinishedNode)
                 return ASTConstructionStatePartial(self.grammar, nodes + [replacement])
             last_node = nodes.pop()

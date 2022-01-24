@@ -3,10 +3,11 @@ from abc import ABC, abstractmethod
 import attr
 import numpy as np
 
+from .constructible import Constructible
 from .utils import fit_circle
 
 
-class Object(ABC):
+class Object(Constructible):
     pass
 
 
@@ -14,11 +15,23 @@ class Object(ABC):
 class Number(Object):
     value = attr.ib()
 
+    def node_class(self):
+        return "Number"
+
+    def node_params(self):
+        return [self.value]
+
 
 class DrawnObject(Object):
     @abstractmethod
     def draw(self, canvas):
         pass
+
+    def node_class(self):
+        return type(self).__name__
+
+    def node_params(self):
+        return []
 
 
 class DrawnObjectInvalidError(Exception):
