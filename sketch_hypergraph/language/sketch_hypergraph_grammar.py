@@ -2,7 +2,6 @@ from operator import add, sub, eq, ne, le, lt, ge, gt, and_, or_
 
 from sketch_hypergraph.language.types import BaseType
 
-
 from .grammar import (
     BlockExpansionRule,
     BuiltinExpansionRule,
@@ -10,10 +9,12 @@ from .grammar import (
     Grammar,
     ConstantExpansionRule,
     IfExpansionRule,
+    ValueExpansionRule,
     VariableExpansionRule,
     NonTerminalExpansionRule,
     StatementExpansionRule,
 )
+from .value import Point, Number
 
 NUMERIC_ARITHMETIC_OPERATION = {"+": add, "-": sub}
 BOOLEAN_ARITHMETIC_OPERATION = {
@@ -68,5 +69,15 @@ def standard_grammar(alphabet, numbers, max_block_length, context):
             ],
             BaseType.block: [BlockExpansionRule(context)],
             BaseType.range: [NonTerminalExpansionRule("Range", [BaseType.numeric] * 3)],
+        },
+    )
+
+
+def value_grammar(numbers):
+    return Grammar(
+        "",
+        {
+            BaseType.numeric: [ConstantExpansionRule(numbers, constructor=Number)],
+            BaseType.point: [ValueExpansionRule(Point, [BaseType.numeric] * 2)],
         },
     )

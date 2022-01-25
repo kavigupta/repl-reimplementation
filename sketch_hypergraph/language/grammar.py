@@ -43,9 +43,10 @@ class ExpansionRule(ABC):
 @attr.s
 class ConstantExpansionRule(ExpansionRule):
     elements = attr.ib()
+    constructor = attr.ib(default=Constant)
 
     def expand(self, typenv):
-        return [Constant(x) for x in self.elements]
+        return [self.constructor(x) for x in self.elements]
 
 
 @attr.s
@@ -131,5 +132,21 @@ class IfExpansionRule(ExpansionRule):
                     for x in [BaseType.bool, BaseType.block, BaseType.block]
                 ],
                 ast_constructor=lambda tag, x: IfNode(*x),
+            )
+        ]
+
+
+@attr.s
+class ValueExpansionRule(ExpansionRule):
+    constructor = attr.ib()
+    types = attr.ib()
+
+    def expand(self, typenv):
+        return [
+            PartiallyFinishedTreeNode(
+                type(self.constructor).__name__,
+                [],
+                [WithinContext(x, typenv) for x in self.types],
+                ast_constructor=lambda tag, x: self.constructor(*x),
             )
         ]
