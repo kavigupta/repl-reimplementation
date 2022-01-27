@@ -38,7 +38,7 @@ class DrawnObjectInvalidError(Exception):
     pass
 
 
-@attr.s
+@attr.s(frozen=True)
 class Point(DrawnObject):
     x = attr.ib()
     y = attr.ib()
@@ -48,7 +48,7 @@ class Point(DrawnObject):
         return cls(x.value, y.value)
 
     def draw(self, canvas):
-        canvas.point(self.x, self.y)
+        canvas.draw_point(self.x, self.y)
 
 
 @attr.s
