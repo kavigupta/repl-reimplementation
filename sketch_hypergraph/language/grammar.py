@@ -10,7 +10,7 @@ from .ast_constructor import (
     PartiallyFinishedForNode,
     PartiallyFinishedTreeNode,
 )
-from .types import BaseType, FreeVariableType, WithinContext
+from .types import BaseType, FilteredType, FreeVariableType, WithinContext
 
 
 @attr.s
@@ -27,6 +27,13 @@ class Grammar:
                 for x in set(self.possible_variables)
                 - set(target.typenv.assigned_variables())
             )
+        if isinstance(target.type, FilteredType):
+            return [
+                x
+                for x in self.expand(target.map(lambda t: t.base_type))
+                if x.node_summary() not in target.type.exclude_list
+            ]
+
         assert isinstance(target.type, (BaseType, str))
         overall = []
         for rule in self.expansion_rules[target.type]:
@@ -92,6 +99,7 @@ class StatementExpansionRule(ExpansionRule):
                 self.statement_signature.name,
                 [],
                 types,
+                require_distinct=self.statement_signature.require_distinct,
             )
         ]
 

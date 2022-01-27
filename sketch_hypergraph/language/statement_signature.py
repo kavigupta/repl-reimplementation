@@ -11,6 +11,7 @@ class StatementSignature(ABC):
     name = attr.ib()
     input_types = attr.ib()
     output_types = attr.ib()
+    require_distinct = attr.ib()
 
     def bind(self, node):
         assert node.tag == self.name

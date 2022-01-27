@@ -22,9 +22,23 @@ class FreeVariableType:
 
 
 @attr.s
+class FilteredType:
+    """
+    Represents all ASTs with the given base type whose
+    node summary does not appear in the given exclude list
+    """
+
+    base_type = attr.ib()
+    exclude_list = attr.ib()
+
+
+@attr.s
 class WithinContext:
     type = attr.ib()
     typenv = attr.ib()
+
+    def map(self, f):
+        return WithinContext(f(self.type), self.typenv)
 
 
 @attr.s

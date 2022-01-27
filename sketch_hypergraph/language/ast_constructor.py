@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 import attr
 
-from sketch_hypergraph.language.types import BaseType, FreeVariableType, WithinContext
+from sketch_hypergraph.language.types import (
+    BaseType,
+    FilteredType,
+    FreeVariableType,
+    WithinContext,
+)
 
 from .ast import ASTNode, BlockNode, Constant, ForNode, Variable
 from .constructible import Constructible
@@ -23,9 +28,15 @@ class PartiallyFinishedTreeNode(PartiallyFinishedNode):
     finished = attr.ib()
     to_finish = attr.ib()
     ast_constructor = attr.ib(kw_only=True, default=ASTNode)
+    require_distinct = attr.ib(kw_only=True, default=False)
 
     def next_type(self):
-        return self.to_finish[0]
+        typ = self.to_finish[0]
+        if self.require_distinct:
+            return typ.map(
+                lambda t: FilteredType(t, [x.node_summary() for x in self.finished])
+            )
+        return typ
 
     @to_finish.validator
     def _check_to_finish(self, attribute, value):
@@ -41,6 +52,7 @@ class PartiallyFinishedTreeNode(PartiallyFinishedNode):
             self.finished + [replacement],
             self.to_finish[1:],
             ast_constructor=self.ast_constructor,
+            require_distinct=self.require_distinct,
         )
 
     def node_class(self):
