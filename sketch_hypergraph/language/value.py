@@ -77,14 +77,16 @@ class Arc(DrawnObject):
         return cls(a, b, c)
 
     def draw(self, canvas):
-        (center, r), residuals = fit_circle([self.a, self.b, self.c])
+        ((cx, cy), r), residuals = fit_circle([self.a, self.b, self.c])
         if r == 0:
             raise DrawnObjectInvalidError("Arc is a point")
-        if residuals.max() > 1e-6:
+        if residuals.max() > 1e-3:
             raise DrawnObjectInvalidError("Arc is not a circle")
-        theta_start = np.arctan2(self.a.y - center.y, self.a.x - center.x)
-        theta_end = np.arctan2(self.a.y - center.y, self.a.x - center.x)
-        canvas.draw_circle(center, r, theta_start, theta_end)
+        theta_start = np.arctan2(self.a.y - cy, self.a.x - cx)
+        theta_end = np.arctan2(self.b.y - cy, self.b.x - cx)
+        if abs(theta_start - theta_end) % (2 * np.pi) < 1e-6:
+            raise DrawnObjectInvalidError("Arc is a point")
+        canvas.draw_circle(Point(cx, cy), r, theta_start, theta_end)
 
 
 @attr.s
