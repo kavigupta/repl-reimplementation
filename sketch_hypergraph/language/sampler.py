@@ -1,6 +1,10 @@
 from collections import Counter
+from itertools import count
 
 import numpy as np
+
+from .canvas import ValidatingCanvas
+from .value import DrawnObjectInvalidError
 
 
 from .ast_constructor import ASTConstructionState
@@ -93,3 +97,26 @@ def sample_datapoint(
     ]
 
     return program, environments, outputs
+
+
+def sample_valid_datapoint(rng, *, minimal_objects, **kwargs):
+    for sampled in count(1):
+        p, i, o = sample_datapoint(rng, **kwargs)
+        if validate_outputs(o, minimal_objects=minimal_objects):
+            return dict(sampled=sampled, p=p, i=i, o=o)
+
+
+def validate_outputs(outputs, **kwargs):
+    return all(validate_output(output, **kwargs) for output in outputs)
+
+
+def validate_output(output, *, minimal_objects):
+    c = ValidatingCanvas()
+    for x in output:
+        try:
+            x.draw(c)
+        except DrawnObjectInvalidError as e:
+            return False
+    if len(c.lines + c.circles) < minimal_objects:
+        return False
+    return True
