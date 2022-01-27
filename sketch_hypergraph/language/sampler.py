@@ -6,11 +6,12 @@ import numpy as np
 from .ast_constructor import ASTConstructionState
 from .driver import DriverError, Driver
 from .types import BaseType, TypeEnv, WithinContext
+from .evaluation import Environment
 
 
 class SamplingDriver(Driver):
-    def __init__(self, seed, weights):
-        self.rng = np.random.RandomState(seed)
+    def __init__(self, rng, weights):
+        self.rng = rng
         self.weights = weights
 
     def select(self, elements):
@@ -49,3 +50,46 @@ def sample_with_driver(driver, grammar, typenv, *, to_sample):
             )
         except DriverError:
             continue
+
+
+def sample_type_environment(rng, types, max_size, variable_alphabet):
+    size = rng.randint(1, 1 + max_size)
+    weights = np.array([w for _, w in types])
+    weights = weights / weights.sum()
+    idx = rng.choice(weights.size, p=weights, size=size, replace=True)
+    variables = rng.choice(sorted(variable_alphabet), size=size, replace=False)
+    return TypeEnv(dict(zip(variables, [types[i][0] for i in idx])))
+
+
+def sample_datapoint(
+    rng,
+    *,
+    sampler_spec,
+    grammar,
+    g_value,
+    t_value,
+    max_type_size,
+    e_context,
+    num_elements
+):
+    type_environment = sample_type_environment(
+        rng,
+        t_value,
+        max_size=max_type_size,
+        variable_alphabet=grammar.possible_variables,
+    )
+    program = sample(dict(**sampler_spec, rng=rng), grammar, type_environment)
+    environments = [
+        sample(
+            dict(**sampler_spec, rng=rng),
+            g_value,
+            TypeEnv({}),
+            to_sample=type_environment,
+        )
+        for _ in range(num_elements)
+    ]
+    outputs = [
+        Environment(e_context, e).evaluate(program).drawn_objects for e in environments
+    ]
+
+    return program, environments, outputs
