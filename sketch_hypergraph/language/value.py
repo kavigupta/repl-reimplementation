@@ -101,7 +101,9 @@ class Circle(DrawnObject):
         return cls(a, b, c, d)
 
     def draw(self, canvas):
+        if len(set([self.a, self.b, self.c, self.d])) < 3:
+            raise DrawnObjectInvalidError("Circle is ill-defined")
         (center, r), _ = fit_circle([self.a, self.b, self.c, self.d])
         if r == 0:
             raise DrawnObjectInvalidError("Circle is a point")
-        canvas.draw_circle(center, r, 0, 2 * np.pi)
+        canvas.draw_circle(Point(*center), r, 0, 2 * np.pi)
