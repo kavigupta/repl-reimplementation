@@ -14,7 +14,6 @@ from .ast import AST, ASTNode, BlockNode, Constant, ForNode, Variable
 
 
 class PartiallyFinishedNode(Constructible):
-
     def node_params(self):
         return []
 
