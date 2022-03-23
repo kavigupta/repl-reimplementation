@@ -96,14 +96,14 @@ def sample_datapoint(
         Environment(e_context, e).evaluate(program).drawn_objects for e in environments
     ]
 
-    return program, environments, outputs
+    return program, environments, outputs, type_environment
 
 
 def sample_valid_datapoint(rng, *, minimal_objects, **kwargs):
     for sampled in count(1):
-        p, i, o = sample_datapoint(rng, **kwargs)
+        p, i, o, te = sample_datapoint(rng, **kwargs)
         if validate_outputs(o, minimal_objects=minimal_objects):
-            return dict(sampled=sampled, p=p, i=i, o=o)
+            return dict(sampled=sampled, p=p, i=i, o=o, type_env=te)
 
 
 def validate_outputs(outputs, **kwargs):
