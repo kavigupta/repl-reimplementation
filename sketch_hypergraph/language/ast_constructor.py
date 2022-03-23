@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import attr
+from sketch_hypergraph.language.constructible import Constructible
 
 from sketch_hypergraph.language.types import (
     BaseType,
@@ -7,12 +8,16 @@ from sketch_hypergraph.language.types import (
     FreeVariableType,
     WithinContext,
 )
+from sketch_hypergraph.language.value import Object
 
-from .ast import ASTNode, BlockNode, Constant, ForNode, Variable
-from .constructible import Constructible
+from .ast import AST, ASTNode, BlockNode, Constant, ForNode, Variable
 
 
-class PartiallyFinishedNode(ABC):
+class PartiallyFinishedNode(Constructible):
+
+    def node_params(self):
+        return []
+
     @abstractmethod
     def next_type(self):
         pass
@@ -175,7 +180,7 @@ class ASTConstructionStatePartial(ASTConstructionState):
     def replace(self, replacement):
         nodes = self.partially_finished_nodes[:]
         while nodes:
-            if not isinstance(replacement, Constructible):
+            if not isinstance(replacement, (AST, Object)):
                 assert isinstance(replacement, PartiallyFinishedNode)
                 return ASTConstructionStatePartial(self.grammar, nodes + [replacement])
             last_node = nodes.pop()
