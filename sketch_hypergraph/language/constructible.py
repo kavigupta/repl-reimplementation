@@ -6,7 +6,7 @@ class Constructible(ABC):
         """
         Summary of just this node
         """
-        return f"{self.node_class()}({', '.join(self.node_params())})"
+        return f"{self.node_class()}({', '.join(repr(x) for x in self.node_params())})"
 
     @abstractmethod
     def node_class(self):
