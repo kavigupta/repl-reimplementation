@@ -7,7 +7,10 @@ from sketch_hypergraph.language.ast_constructor import ASTConstructionState
 from sketch_hypergraph.language.evaluation import EvaluationContext
 
 from sketch_hypergraph.language.sampler import sample_valid_datapoint
-from sketch_hypergraph.language.sketch_hypergraph_grammar import standard_grammar, value_grammar
+from sketch_hypergraph.language.sketch_hypergraph_grammar import (
+    standard_grammar,
+    value_grammar,
+)
 from sketch_hypergraph.language.statement_signature import PrimitiveStatementSignature
 from sketch_hypergraph.language.types import BaseType, WithinContext
 from sketch_hypergraph.language.deserializer import DeSerializingDriver
@@ -26,8 +29,8 @@ sampler_spec = dict(
         "Circle": 1,
         "Line": 1,
         "Arc": 1,
-        "For": 0,
-        "If": 0,
+        "For": 0.5,
+        "If": 0.25,
     },
 )
 

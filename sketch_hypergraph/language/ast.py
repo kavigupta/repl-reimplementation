@@ -75,6 +75,14 @@ class ForNode(AST):
             + ")"
         )
 
+    def serialize(self):
+        return [
+            self.node_summary(),
+            *Variable(self.variable).serialize(),
+            *self.range.serialize(),
+            *self.body.serialize(),
+        ]
+
 
 @attr.s
 class IfNode(AST):
@@ -101,6 +109,14 @@ class IfNode(AST):
             )
             + ")"
         )
+
+    def serialize(self):
+        return [
+            self.node_summary(),
+            *self.condition.serialize(),
+            *self.then_branch.serialize(),
+            *self.else_branch.serialize(),
+        ]
 
 
 class ASTLeaf(AST):
