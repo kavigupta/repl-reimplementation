@@ -7,7 +7,10 @@ from ..language.sampler import sample_valid_datapoint
 
 
 class ExperimentalSetting(ABC):
-    sampler_spec = attr.ib()
+    def __init__(self, *, max_type_size, num_elements, minimal_objects):
+        self.max_type_size = max_type_size
+        self.num_elements = num_elements
+        self.minimal_objects = minimal_objects
 
     @abstractmethod
     def grammar(self, context):
@@ -25,17 +28,18 @@ class ExperimentalSetting(ABC):
     def sampler_spec(self):
         pass
 
-    def sample(self, context, seed, **kwargs):
-        return sample_experimental_setting(self, context, seed, **kwargs)
+    def sample(self, context, seed):
+        return sample_experimental_setting(self, context, seed)
+
+    def __permacache_hash__(self):
+        return dict(type="ExperimentalSetting", content=self.__dict__)
 
 
 @permacache(
     "sketch_hypergraph/experiments/experimental_setting/sample_experimental_setting",
     key_function=dict(es=stable_hash, context=stable_hash),
 )
-def sample_experimental_setting(
-    es, context, seed, *, max_type_size, num_elements, minimal_objects
-):
+def sample_experimental_setting(es, context, seed):
     return sample_valid_datapoint(
         np.random.RandomState(seed),
         sampler_spec=es.sampler_spec(),
@@ -43,7 +47,7 @@ def sample_experimental_setting(
         g_value=es.value_grammar(),
         t_value=es.type_distribution(),
         e_context=context,
-        max_type_size=max_type_size,
-        num_elements=num_elements,
-        minimal_objects=minimal_objects,
+        max_type_size=es.max_type_size,
+        num_elements=es.num_elements,
+        minimal_objects=es.minimal_objects,
     )

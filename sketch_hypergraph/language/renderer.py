@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 
+from permacache import permacache
+
 from .canvas import PillowCanvas
 from .value import Point
 
@@ -28,6 +30,7 @@ def render(datapoint, size=5, dpi=100):
     plt.show()
 
 
+@permacache("sketch_hypergraph/language/renderer/render_images")
 def render_images(outputs, canvas_spec):
     images = []
     for output in outputs:

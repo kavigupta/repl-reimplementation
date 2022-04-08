@@ -23,8 +23,14 @@ primitive_context = EvaluationContext.of(
 )
 
 
-@attr.s
 class NoControlExperiment(ExperimentalSetting):
+    def __init__(self, max_type_size=5, num_elements=5, minimal_objects=4):
+        super().__init__(
+            max_type_size=max_type_size,
+            num_elements=num_elements,
+            minimal_objects=minimal_objects,
+        )
+
     def grammar(self, context):
         return standard_grammar(
             string.ascii_lowercase,
