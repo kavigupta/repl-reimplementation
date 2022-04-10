@@ -15,7 +15,7 @@ def render(datapoint, size=5, dpi=100):
         facecolor="white",
     )
     images = render_images(
-        datapoint["o"], dict(lower_left=Point(-10, -10), size=40, pixels=400)
+        datapoint["o"], dict(lower_left=Point(-15, -15), size=40, pixels=400)
     )
     for i in range(len(datapoint["o"])):
         axs[i].imshow(images[i])
