@@ -5,6 +5,8 @@ from permacache import permacache
 from .canvas import PillowCanvas
 from .value import Point
 
+default_canvas_spec = dict(lower_left=Point(-15, -15), size=40, pixels=400)
+
 
 def render(datapoint, size=5, dpi=100):
     _, axs = plt.subplots(
@@ -14,9 +16,7 @@ def render(datapoint, size=5, dpi=100):
         dpi=dpi,
         facecolor="white",
     )
-    images = render_images(
-        datapoint["o"], dict(lower_left=Point(-15, -15), size=40, pixels=400)
-    )
+    images = render_images(datapoint["o"], default_canvas_spec)
     for i in range(len(datapoint["o"])):
         axs[i].imshow(images[i])
         axs[i].axis("off")
