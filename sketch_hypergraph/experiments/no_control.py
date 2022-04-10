@@ -31,9 +31,12 @@ class NoControlExperiment(ExperimentalSetting):
             minimal_objects=minimal_objects,
         )
 
+    def variable_alphabet(self):
+        return string.ascii_lowercase
+
     def grammar(self, context):
         return standard_grammar(
-            string.ascii_lowercase,
+            self.variable_alphabet(),
             list(range(10)),
             10,
             context=context,

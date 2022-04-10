@@ -13,6 +13,10 @@ class ExperimentalSetting(ABC):
         self.minimal_objects = minimal_objects
 
     @abstractmethod
+    def variable_alphabet(self, context):
+        pass
+
+    @abstractmethod
     def grammar(self, context):
         pass
 
