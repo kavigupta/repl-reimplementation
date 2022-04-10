@@ -21,3 +21,7 @@ class Constructible(ABC):
         Parameters of this node. Non-leaf nodes do not have parameters; leaf nodes do.
         """
         pass
+
+    @abstractmethod
+    def serialize(self):
+        return [f"PLACEHOLDER [{self.node_summary()}]"]

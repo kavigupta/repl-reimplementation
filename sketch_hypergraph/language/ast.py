@@ -9,10 +9,6 @@ class AST(Constructible):
     def s_exp(self):
         pass
 
-    @abstractmethod
-    def serialize(self):
-        return [f"PLACEHOLDER [{self.node_summary()}]"]
-
 
 @attr.s
 class ASTNode(AST):

@@ -21,6 +21,9 @@ class Number(Object):
     def node_params(self):
         return [self.value]
 
+    def serialize(self):
+        return [self.node_summary()]
+
 
 class DrawnObject(Object):
     @abstractmethod
@@ -50,6 +53,13 @@ class Point(DrawnObject):
     def draw(self, canvas):
         canvas.draw_point(self.x, self.y)
 
+    def serialize(self):
+        return [
+            self.node_summary(),
+            *Number(self.x).serialize(),
+            *Number(self.y).serialize(),
+        ]
+
 
 @attr.s
 class Line(DrawnObject):
@@ -64,6 +74,13 @@ class Line(DrawnObject):
         if self.a == self.b:
             raise DrawnObjectInvalidError("Line is a point")
         canvas.draw_line(self.a, self.b)
+
+    def serialize(self):
+        return [
+            self.node_summary(),
+            *self.x.serialize(),
+            *self.y.serialize(),
+        ]
 
 
 @attr.s
@@ -88,6 +105,14 @@ class Arc(DrawnObject):
             raise DrawnObjectInvalidError("Arc is a point")
         canvas.draw_circle(Point(cx, cy), r, theta_start, theta_end)
 
+    def serialize(self):
+        return [
+            self.node_summary(),
+            *self.a.serialize(),
+            *self.b.serialize(),
+            *self.c.serialize(),
+        ]
+
 
 @attr.s
 class Circle(DrawnObject):
@@ -107,3 +132,12 @@ class Circle(DrawnObject):
         if r == 0:
             raise DrawnObjectInvalidError("Circle is a point")
         canvas.draw_circle(Point(*center), r, 0, 2 * np.pi)
+
+    def serialize(self):
+        return [
+            self.node_summary(),
+            *self.a.serialize(),
+            *self.b.serialize(),
+            *self.c.serialize(),
+            *self.d.serialize(),
+        ]

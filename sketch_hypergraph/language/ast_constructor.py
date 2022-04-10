@@ -25,6 +25,11 @@ class PartiallyFinishedNode(Constructible):
     def replace(self, replacement):
         pass
 
+    def serialize(self):
+        raise NotImplementedError(
+            "Cannot serialize a partially finished node as of now"
+        )
+
 
 @attr.s
 class PartiallyFinishedTreeNode(PartiallyFinishedNode):
