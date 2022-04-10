@@ -63,6 +63,7 @@ class TestDeserializer(unittest.TestCase):
             10,
             context=context,
         )
+        alphabet = grammar.token_alphabet()
 
         res = sample_valid_datapoint(
             np.random.RandomState(seed),
@@ -83,3 +84,4 @@ class TestDeserializer(unittest.TestCase):
             WithinContext(BaseType.block, res["type_env"]),
         )
         self.assertEqual(res["p"].s_exp(), created.s_exp())
+        self.assertEquals(set(), set(node) - set(alphabet))

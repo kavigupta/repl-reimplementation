@@ -40,27 +40,52 @@ class Grammar:
             overall += rule.expand(target.typenv)
         return overall
 
+    def token_alphabet(self):
+        result = set()
+        for variable in self.possible_variables:
+            result.add(Variable(variable).node_summary())
+        for rules in self.expansion_rules.values():
+            for rule in rules:
+                result.update(rule.token_alphabet())
+        return sorted(result)
+
 
 class ExpansionRule(ABC):
     @abstractmethod
     def expand(self, typenv):
         pass
 
+    @abstractmethod
+    def token_alphabet(self):
+        pass
+
+
+class ContextFreeExpansionRule(ExpansionRule):
+    @abstractmethod
+    def expand_context_free(self):
+        pass
+
+    def expand(self, typenv):
+        return self.expand_context_free()
+
+    def token_alphabet(self):
+        return [x.node_summary() for x in self.expand_context_free()]
+
 
 @attr.s
-class ConstantExpansionRule(ExpansionRule):
+class ConstantExpansionRule(ContextFreeExpansionRule):
     elements = attr.ib()
     constructor = attr.ib(default=Constant)
 
-    def expand(self, typenv):
+    def expand_context_free(self):
         return [self.constructor(x) for x in self.elements]
 
 
 @attr.s
-class BuiltinExpansionRule(ExpansionRule):
+class BuiltinExpansionRule(ContextFreeExpansionRule):
     elements = attr.ib()
 
-    def expand(self, typenv):
+    def expand_context_free(self):
         return [BuiltinSymbol(x) for x in self.elements]
 
 
@@ -70,6 +95,9 @@ class VariableExpansionRule(ExpansionRule):
 
     def expand(self, typenv):
         return [Variable(x) for x in typenv.assigned_variables(self.type)]
+
+    def token_alphabet(self):
+        return []  # no additional tokens created by this rule
 
 
 @attr.s
@@ -83,6 +111,9 @@ class NonTerminalExpansionRule(ExpansionRule):
                 self.tag, [], [WithinContext(x, typenv) for x in self.types]
             )
         ]
+
+    def token_alphabet(self):
+        return [self.tag + "()"]
 
 
 @attr.s
@@ -103,6 +134,9 @@ class StatementExpansionRule(ExpansionRule):
             )
         ]
 
+    def token_alphabet(self):
+        return [self.statement_signature.name + "()"]
+
 
 @attr.s
 class BlockExpansionRule(ExpansionRule):
@@ -117,6 +151,9 @@ class BlockExpansionRule(ExpansionRule):
             )
         ]
 
+    def token_alphabet(self):
+        return ["Block()"]
+
 
 @attr.s
 class ForExpansionRule(ExpansionRule):
@@ -126,6 +163,9 @@ class ForExpansionRule(ExpansionRule):
                 typenv=typenv,
             )
         ]
+
+    def token_alphabet(self):
+        return ["For()"]
 
 
 @attr.s
@@ -143,6 +183,9 @@ class IfExpansionRule(ExpansionRule):
             )
         ]
 
+    def token_alphabet(self):
+        return ["If()"]
+
 
 @attr.s
 class ValueExpansionRule(ExpansionRule):
@@ -158,3 +201,6 @@ class ValueExpansionRule(ExpansionRule):
                 ast_constructor=lambda tag, x: self.constructor(*x),
             )
         ]
+
+    def token_alphabet(self):
+        return [type(self.constructor).__name__ + "()"]
