@@ -46,7 +46,9 @@ class Grammar:
             result.add(Variable(variable).node_summary())
         for rules in self.expansion_rules.values():
             for rule in rules:
-                result.update(rule.token_alphabet())
+                alphabet = rule.token_alphabet()
+                assert alphabet is not None, str(rule)
+                result.update(alphabet)
         return sorted(result)
 
 
@@ -189,13 +191,14 @@ class IfExpansionRule(ExpansionRule):
 
 @attr.s
 class ValueExpansionRule(ExpansionRule):
+    name = attr.ib()
     constructor = attr.ib()
     types = attr.ib()
 
     def expand(self, typenv):
         return [
             PartiallyFinishedTreeNode(
-                type(self.constructor).__name__,
+                self.name,
                 [],
                 [WithinContext(x, typenv) for x in self.types],
                 ast_constructor=lambda tag, x: self.constructor(*x),
@@ -203,4 +206,4 @@ class ValueExpansionRule(ExpansionRule):
         ]
 
     def token_alphabet(self):
-        return [type(self.constructor).__name__ + "()"]
+        return [self.name + "()"]

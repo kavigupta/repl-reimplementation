@@ -78,6 +78,8 @@ def value_grammar(numbers):
         "",
         {
             BaseType.numeric: [ConstantExpansionRule(numbers, constructor=Number)],
-            BaseType.point: [ValueExpansionRule(Point.of, [BaseType.numeric] * 2)],
+            BaseType.point: [
+                ValueExpansionRule("Point", Point.of, [BaseType.numeric] * 2)
+            ],
         },
     )
