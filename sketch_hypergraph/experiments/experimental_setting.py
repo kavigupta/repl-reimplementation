@@ -7,9 +7,9 @@ from ..language.sampler import sample_valid_datapoint
 
 
 class ExperimentalSetting(ABC):
-    def __init__(self, *, max_type_size, num_elements, minimal_objects):
+    def __init__(self, *, max_type_size, num_elements_dist, minimal_objects):
         self.max_type_size = max_type_size
-        self.num_elements = num_elements
+        self.num_elements_dist = num_elements_dist
         self.minimal_objects = minimal_objects
 
     @abstractmethod
@@ -52,6 +52,6 @@ def sample_experimental_setting(es, context, seed):
         t_value=es.type_distribution(),
         e_context=context,
         max_type_size=es.max_type_size,
-        num_elements=es.num_elements,
+        num_elements_dist=es.num_elements_dist,
         minimal_objects=es.minimal_objects,
     )

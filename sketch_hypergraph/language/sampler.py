@@ -65,6 +65,15 @@ def sample_type_environment(rng, types, max_size, variable_alphabet):
     return TypeEnv(dict(zip(variables, [types[i][0] for i in idx])))
 
 
+def weighted_choice(d):
+    keys = sorted(d)
+    weights = [d[k] for k in keys]
+    weights = np.array(weights, dtype=np.float)
+    weights = weights / weights.sum()
+    idx = np.random.choice(weights.size, p=weights)
+    return keys[idx]
+
+
 def sample_datapoint(
     rng,
     *,
@@ -74,8 +83,9 @@ def sample_datapoint(
     t_value,
     max_type_size,
     e_context,
-    num_elements
+    num_elements_dist
 ):
+    num_elements = weighted_choice(num_elements_dist)
     type_environment = sample_type_environment(
         rng,
         t_value,

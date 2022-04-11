@@ -73,7 +73,7 @@ class TestDeserializer(unittest.TestCase):
             t_value=[(BaseType.numeric, 1), (BaseType.point, 1)],
             max_type_size=5,
             e_context=context,
-            num_elements=5,
+            num_elements_dist={4: 1, 5: 1, 6: 1, 7: 1},
             minimal_objects=4,
         )
 

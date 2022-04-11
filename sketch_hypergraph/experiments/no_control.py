@@ -24,10 +24,15 @@ primitive_context = EvaluationContext.of(
 
 
 class NoControlExperiment(ExperimentalSetting):
-    def __init__(self, max_type_size=5, num_elements=5, minimal_objects=4):
+    def __init__(
+        self,
+        max_type_size=5,
+        num_elements_dist={4: 1, 5: 1, 6: 1, 7: 1},
+        minimal_objects=4,
+    ):
         super().__init__(
             max_type_size=max_type_size,
-            num_elements=num_elements,
+            num_elements_dist=num_elements_dist,
             minimal_objects=minimal_objects,
         )
 
