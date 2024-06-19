@@ -62,8 +62,6 @@ def toks_to_tree(toks):
             continue
         assert tok[0] == "repeat"
         _, ntoks, times = tok
-        if times == 1:
-            continue
         repeat = dict(
             type="repeat",
             times=dict(type="count", value=times),
@@ -116,10 +114,10 @@ class FlatRepeatsSampler:
 
     def __call__(self, rng):
         toks = []
-        for _ in range(1 + self.sample_dist(rng, self.chunk_dist)):
-            body_size = 1 + self.sample_dist(rng, self.repeat_body_dist)
+        for _ in range(self.sample_dist(rng, self.chunk_dist)):
+            body_size = self.sample_dist(rng, self.repeat_body_dist)
             toks.extend(rng.choice(ACTIONS, size=body_size, replace=True))
-            toks.append(("repeat", body_size, 1 + self.sample_dist(rng, self.repeat_dist)))
+            toks.append(("repeat", body_size, self.sample_dist(rng, self.repeat_dist)))
         if self.flatten_out:
             toks = list(flatten_program(toks_to_tree((toks))))
         return toks
